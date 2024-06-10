@@ -8,7 +8,10 @@ public partial class Index
 {
     [Inject]
     public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
-
+    
+    /// <summary>
+    /// 　商品のリスト
+    /// </summary>
     public List<Product> Products { get; set; } = [];
 
     public required ApplicationDbContext DbFactory { get; set; } 
