@@ -1,0 +1,41 @@
+﻿@page "/fetchdata"
+@using BlazorApp13.Data
+
+<PageTitle>購入履歴</PageTitle>
+
+<h1>購入履歴</h1>
+
+<MudDataGrid Items="@Products" ReadOnly="true"
+             Bordered="true" Dense="true">
+    <Columns>
+        <PropertyColumn Property="x => x.ProductName" Title="商品名" />
+        <PropertyColumn Property="x => x.Price" Title="価格" />
+        <TemplateColumn Title="総購入数">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudText>@PurchaseLogs.Where(x => x.ProductId == context.Item.ProductId).Sum(x => x.Amount) 個</MudText>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="合計金額">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudText>@(PurchaseLogs.Where(x => x.ProductId == context.Item.ProductId).Sum(x => x.Amount) * context.Item.Price)円</MudText>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@foreach (var Purchase in PurchaseLogs)
+{
+    <MudPaper Class="ma-2 pa-2">
+        <MudStack Row>
+            @Products.Where(x => x.ProductId == Purchase.ProductId).Single().ProductName
+            @Purchase.Amount 個
+            @(Products.Where(x => x.ProductId == Purchase.ProductId).Single().Price * Purchase.Amount)円
+            @Purchase.PurchaseDate
+            <MudButton Color="Color.Error" OnClick="@(x => DeletePurchase(Purchase.LogId))" Variant="Variant.Filled">購買情報削除</MudButton>
+        </MudStack>
+    </MudPaper>
+}

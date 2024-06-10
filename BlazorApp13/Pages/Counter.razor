@@ -1,0 +1,35 @@
+﻿@page "/counter"
+@using BlazorApp13.Data
+
+<PageTitle>購入</PageTitle>
+
+<h1>購入</h1>
+<MudDataGrid  Items="@Products" ReadOnly="true"
+             Bordered="true" Dense="true" >
+    <Columns>
+        <PropertyColumn Property="x => x.ProductName" Title="商品名" />
+        <PropertyColumn Property="x => x.Price" Title="価格" />
+        <PropertyColumn Property="x => x.Misc" Title="その他備考" />
+        <TemplateColumn Title="購入数">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudNumericField @bind-Value="context.Item.Amount" Min="0" Max="9999" Immediate="true" Label="数量" Variant="Variant.Outlined" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="金額">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudText>@context.Item.Sum 円</MudText>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+<MudPaper Class="ma-2 pa-2">
+    <MudText Typo="Typo.h4" Class="d-flex jusify-end">合計 : @Products.Sum(x => x.Sum) 円</MudText>
+    <MudNumericField @bind-Value="Received" Min="0" Immediate="true" Label="お預かり" Variant="Variant.Outlined" Class="d-flex jusify-end" />
+    <MudText Typo="Typo.h4" Class="d-flex jusify-end">おつり : @(Received - Products.Sum(x => x.Sum)) 円</MudText>
+    <MudButton Color="Color.Primary" OnClick="@Purchase" Variant="Variant.Filled">購買情報登録</MudButton>
+</MudPaper>
