@@ -1,4 +1,4 @@
-﻿namespace BlazorApp13.Data;
+﻿namespace PurchaseWeb.Data;
 
 public class ProductBuy
 {

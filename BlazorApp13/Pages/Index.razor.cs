@@ -1,8 +1,8 @@
-﻿using BlazorApp13.Data;
+﻿using PurchaseWeb.Data;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlazorApp13.Pages;
+namespace PurchaseWeb.Pages;
 
 public partial class Index
 {

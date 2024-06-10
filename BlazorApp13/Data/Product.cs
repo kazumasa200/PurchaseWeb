@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace BlazorApp13.Data;
+namespace PurchaseWeb.Data;
 
 [Table("product")]
 public class Product

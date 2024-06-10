@@ -1,4 +1,4 @@
-using BlazorApp13.Data;
+using PurchaseWeb.Data;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 

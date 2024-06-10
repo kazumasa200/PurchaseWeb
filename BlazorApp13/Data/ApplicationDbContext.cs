@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace BlazorApp13.Data;
+namespace PurchaseWeb.Data;
 
 public class ApplicationDbContext : DbContext
 {
