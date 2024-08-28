@@ -7,33 +7,28 @@ namespace BlazorApp13.Pages;
 
 public partial class Counter
 {
-    [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public required ISnackbar Snackbar { get; set; }
+    public IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
-    public List<Product> Products { get; set; } = [];
-
-    public required ApplicationDbContext DbFactory { get; set; }
+    public string NewProdMisc { get; set; } = string.Empty;
 
     public string NewProdName { get; set; } = string.Empty;
 
     public int NewProdPrice { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
+    public List<Product> Products { get; set; } = [];
 
     public int Received { get; set; }
+
+    [Inject]
+    public ISnackbar Snackbar { get; set; }
 
     public void GetProducts()
     {
         DbFactory = DBFactory.CreateDbContext();
         Products = [.. DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate)];
-    }
-
-    protected override void OnInitialized()
-    {
-        GetProducts();
     }
 
     /// <summary>
@@ -68,10 +63,15 @@ public partial class Counter
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message,Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Error);
         }
 
         GetProducts();
         StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        GetProducts();
     }
 }
