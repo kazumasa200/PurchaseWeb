@@ -6,10 +6,10 @@ namespace PurchaseWeb.Pages;
 
 public partial class Index
 {
-    public ApplicationDbContext DbFactory { get; set; }
+    public required ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
     public string NewProdMisc { get; set; } = string.Empty;
 

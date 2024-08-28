@@ -7,10 +7,10 @@ namespace PurchaseWeb.Pages;
 
 public partial class Counter
 {
-    public ApplicationDbContext DbFactory { get; set; }
+    public required ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
     public string NewProdMisc { get; set; } = string.Empty;
 
@@ -23,7 +23,7 @@ public partial class Counter
     public int Received { get; set; }
 
     [Inject]
-    public ISnackbar Snackbar { get; set; }
+    public required ISnackbar Snackbar { get; set; }
 
     public void GetProducts()
     {
