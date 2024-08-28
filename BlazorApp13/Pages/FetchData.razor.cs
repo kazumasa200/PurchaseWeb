@@ -1,43 +1,31 @@
-﻿using PurchaseWeb.Data;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
+using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
 public partial class FetchData
 {
-    [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public required ISnackbar Snackbar { get; set; }
+    public IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
-    public List<Product> Products { get; set; } = [];
-
-    public List<PurchaseLog> PurchaseLogs { get; set; } = [];
-
-    public required ApplicationDbContext DbFactory { get; set; }
+    public string NewProdMisc { get; set; } = string.Empty;
 
     public string NewProdName { get; set; } = string.Empty;
 
     public int NewProdPrice { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
+    public List<Product> Products { get; set; } = [];
+
+    public List<PurchaseLog> PurchaseLogs { get; set; } = [];
 
     public int Received { get; set; }
 
-    public void GetProducts()
-    {
-        DbFactory = DBFactory.CreateDbContext();
-        Products = DbFactory.Product.OrderBy(x => x.CreateDate).ToList();
-        PurchaseLogs = DbFactory.PurchaseLog.Where(x => x.DeleteFlag == false).OrderByDescending(x => x.PurchaseDate).ToList();
-    }
-
-    protected override void OnInitialized()
-    {
-        GetProducts();
-    }
+    [Inject]
+    public ISnackbar Snackbar { get; set; }
 
     /// <summary>
     /// 購買情報挿入
@@ -67,5 +55,17 @@ public partial class FetchData
 
         GetProducts();
         StateHasChanged();
+    }
+
+    public void GetProducts()
+    {
+        DbFactory = DBFactory.CreateDbContext();
+        Products = DbFactory.Product.OrderBy(x => x.CreateDate).ToList();
+        PurchaseLogs = DbFactory.PurchaseLog.Where(x => x.DeleteFlag == false).OrderByDescending(x => x.PurchaseDate).ToList();
+    }
+
+    protected override void OnInitialized()
+    {
+        GetProducts();
     }
 }

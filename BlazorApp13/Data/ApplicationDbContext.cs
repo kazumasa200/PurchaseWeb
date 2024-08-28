@@ -5,7 +5,8 @@ namespace PurchaseWeb.Data;
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-         : base(options) {
+         : base(options)
+    {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
     }
 

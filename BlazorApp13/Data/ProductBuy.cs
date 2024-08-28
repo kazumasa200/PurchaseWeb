@@ -6,5 +6,4 @@ public class ProductBuy
     /// 購入数
     /// </summary>
     public int Amount { get; set; }
-
 }

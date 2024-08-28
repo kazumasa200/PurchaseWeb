@@ -1,26 +1,44 @@
-﻿using PurchaseWeb.Data;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
+using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
 public partial class Index
 {
-    [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
-    
-    /// <summary>
-    /// 　商品のリスト
-    /// </summary>
-    public List<Product> Products { get; set; } = [];
+    public ApplicationDbContext DbFactory { get; set; }
 
-    public required ApplicationDbContext DbFactory { get; set; } 
+    [Inject]
+    public IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+
+    public string NewProdMisc { get; set; } = string.Empty;
 
     public string NewProdName { get; set; } = string.Empty;
 
     public int NewProdPrice { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
+    /// <summary>
+    /// 　商品のリスト
+    /// </summary>
+    public List<Product> Products { get; set; } = [];
+
+    /// <summary>
+    /// 製品削除
+    /// </summary>
+    /// <param name="product"></param>
+    public void DeleteProduct(Product product)
+    {
+        var a = DbFactory.Product.Single(x => x.ProductId == product.ProductId);
+        if (a != null)
+        {
+            a.DeleteFlag = true;
+            DbFactory.Product.Update(a);
+            DbFactory.SaveChanges();
+        }
+
+        GetProducts();
+        StateHasChanged();
+    }
 
     public void GetProducts()
     {
@@ -28,18 +46,13 @@ public partial class Index
         Products = DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate).ToList();
     }
 
-    protected override void OnInitialized()
-    {
-        GetProducts();
-    }
-     
     /// <summary>
     /// 製品追加
     /// </summary>
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void InsertProduct(string name, int price , string? misc)
+    public void InsertProduct(string name, int price, string? misc)
     {
         var prod = new Product()
         {
@@ -58,6 +71,16 @@ public partial class Index
         ResetForm();
         GetProducts();
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// 新規追加のところをリセット
+    /// </summary>
+    public void ResetForm()
+    {
+        NewProdMisc = string.Empty;
+        NewProdName = string.Empty;
+        NewProdPrice = 0;
     }
 
     /// <summary>
@@ -80,31 +103,8 @@ public partial class Index
         StateHasChanged();
     }
 
-    /// <summary>
-    /// 製品削除
-    /// </summary>
-    /// <param name="product"></param>
-    public void DeleteProduct(Product product)
+    protected override void OnInitialized()
     {
-        var a = DbFactory.Product.Single(x => x.ProductId == product.ProductId);
-        if(a != null)
-        {
-            a.DeleteFlag = true;
-            DbFactory.Product.Update(a);
-            DbFactory.SaveChanges();
-        }
-
         GetProducts();
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// 新規追加のところをリセット
-    /// </summary>
-    public void ResetForm()
-    {
-        NewProdMisc = string.Empty;
-        NewProdName = string.Empty;
-        NewProdPrice = 0;
     }
 }
