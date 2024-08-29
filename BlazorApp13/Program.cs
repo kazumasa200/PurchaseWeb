@@ -1,6 +1,6 @@
-using PurchaseWeb.Data;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using PurchaseWeb.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
