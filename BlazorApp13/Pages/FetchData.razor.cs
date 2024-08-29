@@ -57,6 +57,9 @@ public partial class FetchData
         StateHasChanged();
     }
 
+    /// <summary>
+    /// 製品情報を取得する
+    /// </summary>
     public void GetProducts()
     {
         DbFactory = DBFactory.CreateDbContext();
