@@ -5,7 +5,7 @@ using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
-public partial class FetchData
+public partial class Register
 {
     public required ApplicationDbContext DbFactory { get; set; }
 
@@ -20,12 +20,16 @@ public partial class FetchData
 
     public List<Product> Products { get; set; } = [];
 
-    public List<PurchaseLog> PurchaseLogs { get; set; } = [];
-
     public int Received { get; set; }
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
+
+    public void GetProducts()
+    {
+        DbFactory = DBFactory.CreateDbContext();
+        Products = [.. DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate)];
+    }
 
     /// <summary>
     /// 購買情報挿入
@@ -33,19 +37,28 @@ public partial class FetchData
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void DeletePurchase(string purchaseId)
+    public void Purchase()
     {
         try
         {
-            var a = DbFactory.PurchaseLog.Single(x => x.LogId == purchaseId);
-            if (a != null)
+            foreach (var product in Products)
             {
-                a.DeleteFlag = true;
-                DbFactory.PurchaseLog.Update(a);
-                DbFactory.SaveChanges();
+                if (product.Amount > 0)
+                {
+                    var Purchase = new PurchaseLog()
+                    {
+                        Amount = product.Amount,
+                        DeleteFlag = false,
+                        ProductId = product.ProductId,
+                        LogId = Guid.NewGuid().ToString(),
+                        PurchaseDate = DateTime.Now,
+                    };
+                    DbFactory.PurchaseLog.Add(Purchase);
+                }
             }
 
-            Snackbar.Add("取り消しました。", Severity.Success);
+            DbFactory.SaveChanges();
+            Snackbar.Add("お買い上げありがとうございます！", Severity.Success);
             Received = 0;
         }
         catch (Exception ex)
@@ -55,16 +68,6 @@ public partial class FetchData
 
         GetProducts();
         StateHasChanged();
-    }
-
-    /// <summary>
-    /// 製品情報を取得する
-    /// </summary>
-    public void GetProducts()
-    {
-        DbFactory = DBFactory.CreateDbContext();
-        Products = DbFactory.Product.OrderBy(x => x.CreateDate).ToList();
-        PurchaseLogs = DbFactory.PurchaseLog.Where(x => x.DeleteFlag == false).OrderByDescending(x => x.PurchaseDate).ToList();
     }
 
     protected override void OnInitialized()

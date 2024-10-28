@@ -5,7 +5,7 @@ using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
-public partial class Counter
+public partial class PurchaseHistory
 {
     public required ApplicationDbContext DbFactory { get; set; }
 
@@ -20,16 +20,12 @@ public partial class Counter
 
     public List<Product> Products { get; set; } = [];
 
+    public List<PurchaseLog> PurchaseLogs { get; set; } = [];
+
     public int Received { get; set; }
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
-
-    public void GetProducts()
-    {
-        DbFactory = DBFactory.CreateDbContext();
-        Products = [.. DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate)];
-    }
 
     /// <summary>
     /// 購買情報挿入
@@ -37,28 +33,19 @@ public partial class Counter
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void Purchase()
+    public void DeletePurchase(string purchaseId)
     {
         try
         {
-            foreach (var product in Products)
+            var a = DbFactory.PurchaseLog.Single(x => x.LogId == purchaseId);
+            if (a != null)
             {
-                if (product.Amount > 0)
-                {
-                    var Purchase = new PurchaseLog()
-                    {
-                        Amount = product.Amount,
-                        DeleteFlag = false,
-                        ProductId = product.ProductId,
-                        LogId = Guid.NewGuid().ToString(),
-                        PurchaseDate = DateTime.Now,
-                    };
-                    DbFactory.PurchaseLog.Add(Purchase);
-                }
+                a.DeleteFlag = true;
+                DbFactory.PurchaseLog.Update(a);
+                DbFactory.SaveChanges();
             }
 
-            DbFactory.SaveChanges();
-            Snackbar.Add("お買い上げありがとうございます！", Severity.Success);
+            Snackbar.Add("取り消しました。", Severity.Success);
             Received = 0;
         }
         catch (Exception ex)
@@ -68,6 +55,16 @@ public partial class Counter
 
         GetProducts();
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// 製品情報を取得する
+    /// </summary>
+    public void GetProducts()
+    {
+        DbFactory = DBFactory.CreateDbContext();
+        Products = DbFactory.Product.OrderBy(x => x.CreateDate).ToList();
+        PurchaseLogs = DbFactory.PurchaseLog.Where(x => x.DeleteFlag == false).OrderByDescending(x => x.PurchaseDate).ToList();
     }
 
     protected override void OnInitialized()

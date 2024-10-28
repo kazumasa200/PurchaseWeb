@@ -4,7 +4,7 @@ using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
-public partial class Index
+public partial class ProductManage
 {
     public required ApplicationDbContext DbFactory { get; set; }
 
