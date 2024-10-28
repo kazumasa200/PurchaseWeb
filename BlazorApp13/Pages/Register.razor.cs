@@ -12,12 +12,6 @@ public partial class Register
     [Inject]
     public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
-
-    public string NewProdName { get; set; } = string.Empty;
-
-    public int NewProdPrice { get; set; }
-
     public List<Product> Products { get; set; } = [];
 
     public int Received { get; set; }

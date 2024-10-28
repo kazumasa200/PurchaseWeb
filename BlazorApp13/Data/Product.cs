@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PurchaseWeb.Data;
 
+/// <summary>
+/// 商品マスタ
+/// </summary>
 [Table("product")]
 public class Product
 {
@@ -46,6 +49,9 @@ public class Product
     [Column("product_name")]
     public string ProductName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 合計金額
+    /// </summary>
     [NotMapped]
     public int Sum
     {

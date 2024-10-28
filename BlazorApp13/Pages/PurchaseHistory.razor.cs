@@ -12,12 +12,6 @@ public partial class PurchaseHistory
     [Inject]
     public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
-
-    public string NewProdName { get; set; } = string.Empty;
-
-    public int NewProdPrice { get; set; }
-
     public List<Product> Products { get; set; } = [];
 
     public List<PurchaseLog> PurchaseLogs { get; set; } = [];
@@ -28,7 +22,7 @@ public partial class PurchaseHistory
     public required ISnackbar Snackbar { get; set; }
 
     /// <summary>
-    /// 購買情報挿入
+    /// 購買情報削除
     /// </summary>
     /// <param name="name"></param>
     /// <param name="price"></param>
