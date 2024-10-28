@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using Infra.Persistance.Context;
+using Infra.Persistance.Entities;
+using Infra.Repositories;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
-using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 
@@ -12,17 +14,22 @@ public partial class Register
     [Inject]
     public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
 
-    public List<Product> Products { get; set; } = [];
+    [Inject]
+    public required IProductBuyRepository ProductBuyRepository { get; set; }
+
+    public List<ProductBuy> Products { get; set; } = [];
+
+    public List<Product> ProductsOrig { get; set; } = [];
 
     public int Received { get; set; }
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
 
-    public void GetProducts()
+    public async Task GetProducts()
     {
         DbFactory = DBFactory.CreateDbContext();
-        Products = [.. DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate)];
+        Products = await ProductBuyRepository.GetActiveProductBuy();
     }
 
     /// <summary>
@@ -31,7 +38,7 @@ public partial class Register
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void Purchase()
+    public async Task Purchase()
     {
         try
         {
@@ -43,7 +50,7 @@ public partial class Register
                     {
                         Amount = product.Amount,
                         DeleteFlag = false,
-                        ProductId = product.ProductId,
+                        ProductId = product.Product.ProductId,
                         LogId = Guid.NewGuid().ToString(),
                         PurchaseDate = DateTime.Now,
                     };
@@ -60,12 +67,12 @@ public partial class Register
             Snackbar.Add(ex.Message, Severity.Error);
         }
 
-        GetProducts();
+        await GetProducts();
         StateHasChanged();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        GetProducts();
+        await GetProducts();
     }
 }

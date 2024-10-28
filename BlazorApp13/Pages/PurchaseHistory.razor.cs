@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using Infra.Persistance.Context;
+using Infra.Persistance.Entities;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
-using PurchaseWeb.Data;
 
 namespace PurchaseWeb.Pages;
 

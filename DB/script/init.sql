@@ -36,6 +36,7 @@ comment on column product.misc is '備考';
 comment on column product.update_date is '更新日';
 comment on column product.delete_flag is '削除フラグ';
 
+
 insert into public.product(product_id,product_name,price,create_date,misc,update_date,delete_flag) values 
  ('8cb069ae-03ed-478e-8401-4e0ea63c1da0','証拠写真（チェキ撮影、サイン有）',1500,TIMESTAMP '2024-05-18 12:55:29.817','',TIMESTAMP '2024-05-18 12:55:29.817',false)
 ,('920ee9ce-2dbb-4f83-b463-b87088fdd334','精神科医N 書籍',1800,TIMESTAMP '2024-05-18 12:53:42.514','',TIMESTAMP '2024-05-18 12:53:42.514',false)

@@ -1,21 +1,23 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using PurchaseWeb.Data;
+﻿using Infra.Persistance.Entities;
+using Infra.Repositories;
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 namespace PurchaseWeb.Pages;
 
 public partial class ProductManage
 {
-    public required ApplicationDbContext DbFactory { get; set; }
-
     [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public required IProductRepository ProductRepository { get; set; }
 
     public string NewProdMisc { get; set; } = string.Empty;
 
     public string NewProdName { get; set; } = string.Empty;
 
     public int NewProdPrice { get; set; }
+
+    [Inject]
+    public required ISnackbar Snackbar { get; set; }
 
     /// <summary>
     /// 　商品のリスト
@@ -26,24 +28,30 @@ public partial class ProductManage
     /// 製品削除
     /// </summary>
     /// <param name="product"></param>
-    public void DeleteProduct(Product product)
+    public async Task DeleteProduct(Product product)
     {
-        var a = DbFactory.Product.Single(x => x.ProductId == product.ProductId);
-        if (a != null)
+        var updated = Product.Delete(product);
+        var ret = await ProductRepository.UpdateAsync(updated);
+        if (ret != null && ret.IsSuccess)
         {
-            a.DeleteFlag = true;
-            DbFactory.Product.Update(a);
-            DbFactory.SaveChanges();
+            Snackbar.Add("更新成功", Severity.Success);
+            ResetForm();
         }
-
-        GetProducts();
+        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+        {
+            Snackbar.Add(ret.ErrorMessage, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("更新失敗", Severity.Error);
+        }
+        await GetProducts();
         StateHasChanged();
     }
 
-    public void GetProducts()
+    public async Task GetProducts()
     {
-        DbFactory = DBFactory.CreateDbContext();
-        Products = DbFactory.Product.Where(x => x.DeleteFlag == false).OrderBy(x => x.CreateDate).ToList();
+        Products = await ProductRepository.GetActiveProducts();
     }
 
     /// <summary>
@@ -52,24 +60,25 @@ public partial class ProductManage
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void InsertProduct(string name, int price, string? misc)
+    public async Task InsertProduct(string name, int price, string? misc)
     {
-        var prod = new Product()
+        var prod = Product.Create(null, name, price, misc);
+
+        var ret = await ProductRepository.AddAsync(prod);
+        if (ret != null && ret.IsSuccess)
         {
-            ProductId = Guid.NewGuid().ToString(),
-            ProductName = name,
-            Price = price,
-            Misc = misc,
-            CreateDate = DateTime.Now,
-            UpdateDate = DateTime.Now,
-            DeleteFlag = false,
-        };
-
-        DbFactory.Product.Add(prod);
-        DbFactory.SaveChanges();
-
-        ResetForm();
-        GetProducts();
+            Snackbar.Add("追加成功", Severity.Success);
+            ResetForm();
+        }
+        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+        {
+            Snackbar.Add(ret.ErrorMessage, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("追加失敗", Severity.Error);
+        }
+        await GetProducts();
         StateHasChanged();
     }
 
@@ -87,24 +96,29 @@ public partial class ProductManage
     /// 製品更新
     /// </summary>
     /// <param name="product"></param>
-    public void UpdateProduct(Product product)
+    public async Task UpdateProduct(Product product)
     {
-        var a = DbFactory.Product.Single(x => x.ProductId == product.ProductId);
-        if (a != null)
+        var updated = Product.Update(product);
+        var ret = await ProductRepository.UpdateAsync(updated);
+        if (ret != null && ret.IsSuccess)
         {
-            a.ProductName = product.ProductName;
-            a.Price = product.Price;
-            a.Misc = product.Misc;
-            DbFactory.Product.Update(a);
-            DbFactory.SaveChanges();
+            Snackbar.Add("更新成功", Severity.Success);
+            ResetForm();
         }
-
-        GetProducts();
+        else if(ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+        {
+            Snackbar.Add(ret.ErrorMessage, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("更新失敗", Severity.Error);
+        }
+        await GetProducts();
         StateHasChanged();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        GetProducts();
+        await GetProducts();
     }
 }

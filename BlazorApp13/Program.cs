@@ -1,15 +1,22 @@
+using Infra.Persistance.Context;
+using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using PurchaseWeb.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 options.UseNpgsql(builder.Configuration.GetConnectionString("db")));
+
 builder.Services.AddMudServices();
+
+// ƒŠƒ|ƒWƒgƒŠ‚Ì“o˜^
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 
 var app = builder.Build();
 

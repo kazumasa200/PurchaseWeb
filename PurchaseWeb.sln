@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34616.47
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PurchaseWeb", "BlazorApp13\PurchaseWeb.csproj", "{1F85A7EB-3829-40FC-A1F2-1C5D5C74342C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infra", "Infra\Infra.csproj", "{E243ACED-B8F9-4E2E-B706-672FA4FB2BAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{1F85A7EB-3829-40FC-A1F2-1C5D5C74342C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F85A7EB-3829-40FC-A1F2-1C5D5C74342C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F85A7EB-3829-40FC-A1F2-1C5D5C74342C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E243ACED-B8F9-4E2E-B706-672FA4FB2BAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E243ACED-B8F9-4E2E-B706-672FA4FB2BAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E243ACED-B8F9-4E2E-B706-672FA4FB2BAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E243ACED-B8F9-4E2E-B706-672FA4FB2BAC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

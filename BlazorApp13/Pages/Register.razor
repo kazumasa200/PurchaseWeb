@@ -1,19 +1,18 @@
 ﻿@page "/register"
-@using PurchaseWeb.Data
-
+@using Infra.Persistance.Entities
 <PageTitle>購入</PageTitle>
 
 <h1>購入</h1>
 <MudDataGrid  Items="@Products" ReadOnly="true"
              Bordered="true" Dense="true" >
     <Columns>
-        <PropertyColumn Property="x => x.ProductName" Title="商品名" />
-        <PropertyColumn Property="x => x.Price" Title="価格" />
-        <PropertyColumn Property="x => x.Misc" Title="その他備考" />
+        <PropertyColumn Property="x => x.Product.ProductName" Title="商品名" />
+        <PropertyColumn Property="x => x.Product.Price" Title="価格" />
+        <PropertyColumn Property="x => x.Product.Misc" Title="その他備考" />
         <TemplateColumn Title="購入数">
             <CellTemplate>
                 <MudStack Row>
-                    <MudNumericField @bind-Value="context.Item.Amount" Min="0" Max="9999" Immediate="true" Label="数量" Variant="Variant.Outlined" />
+                    <MudNumericField @bind-Value="context.Item.Amount" Min="0" Max="99" Immediate="true" Label="数量" Variant="Variant.Outlined" />
                 </MudStack>
             </CellTemplate>
         </TemplateColumn>
