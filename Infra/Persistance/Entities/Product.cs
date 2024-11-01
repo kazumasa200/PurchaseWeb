@@ -38,7 +38,7 @@ public class Product
     /// <summary>
     /// 更新日
     /// </summary>
-    public DateTime? UpdateDate { get; set; }
+    public DateTime? UpdateDate { get; private set; }
 
     public virtual ICollection<PurchaseLog> PurchaseLogs { get; private set; } = [];
 

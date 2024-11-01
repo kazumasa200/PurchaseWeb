@@ -14,12 +14,8 @@ public interface IProductBuyRepository
     public Task<List<ProductBuy>> GetActiveProductBuy();
 }
 
-public class ProductBuyRepository : BaseRepository, IProductBuyRepository
+public class ProductBuyRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : BaseRepository(dbFactory), IProductBuyRepository
 {
-    public ProductBuyRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : base(dbFactory)
-    {
-    }
-
     public async Task<List<ProductBuy>> GetActiveProductBuy()
     {
         return await ExecuteInContextAsync(async context =>

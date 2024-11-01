@@ -28,12 +28,8 @@ public interface IProductRepository
     public Task<Result<Product>> UpdateAsync(Product product);
 }
 
-public class ProductRepository : BaseRepository, IProductRepository
+public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : BaseRepository(dbFactory), IProductRepository
 {
-    public ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : base(dbFactory)
-    {
-    }
-
     public async Task<List<Product>> GetActiveProducts()
     {
         return await ExecuteInContextAsync(context =>

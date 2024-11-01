@@ -34,7 +34,7 @@
             @Purchase.Amount 個
             @(Products.Where(x => x.ProductId == Purchase.ProductId).Single().Price * Purchase.Amount)円
             @Purchase.PurchaseDate
-            <MudButton Color="Color.Error" OnClick="@(x => DeletePurchase(Purchase.LogId))" Variant="Variant.Filled">購買情報削除</MudButton>
+            <MudButton Color="Color.Error" OnClick="@(x => DeletePurchase(Purchase))" Variant="Variant.Filled">購買情報削除</MudButton>
         </MudStack>
     </MudPaper>
 }

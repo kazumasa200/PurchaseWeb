@@ -2,7 +2,6 @@
 using Infra.Persistance.Entities;
 using Infra.Repositories;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 
 namespace PurchaseWeb.Pages;
@@ -12,10 +11,10 @@ public partial class Register
     public required ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public required IProductBuyRepository ProductBuyRepository { get; set; }
 
     [Inject]
-    public required IProductBuyRepository ProductBuyRepository { get; set; }
+    public required IPurchaseLogRepository PurchaseLogRepository { get; set; }
 
     public List<ProductBuy> Products { get; set; } = [];
 
@@ -28,7 +27,6 @@ public partial class Register
 
     public async Task GetProducts()
     {
-        DbFactory = DBFactory.CreateDbContext();
         Products = await ProductBuyRepository.GetActiveProductBuy();
     }
 
@@ -40,35 +38,37 @@ public partial class Register
     /// <param name="misc"></param>
     public async Task Purchase()
     {
-        try
+        var data = new List<PurchaseLog>();
+        foreach (var product in Products)
         {
-            foreach (var product in Products)
+            if (product.Amount > 0)
             {
-                if (product.Amount > 0)
-                {
-                    var Purchase = new PurchaseLog()
-                    {
-                        Amount = product.Amount,
-                        DeleteFlag = false,
-                        ProductId = product.Product.ProductId,
-                        LogId = Guid.NewGuid().ToString(),
-                        PurchaseDate = DateTime.Now,
-                    };
-                    DbFactory.PurchaseLog.Add(Purchase);
-                }
+                data.Add(PurchaseLog.Create(product.Amount, product.Product.ProductId, null));
             }
-
-            DbFactory.SaveChanges();
-            Snackbar.Add("お買い上げありがとうございます！", Severity.Success);
-            Received = 0;
         }
-        catch (Exception ex)
+        if (data.Count > 0)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            var ret = await PurchaseLogRepository.AddRangeAsync(data);
+            if (ret != null && ret.IsSuccess)
+            {
+                Snackbar.Add("お買い上げありがとうございます！", Severity.Success);
+                Received = 0;
+            }
+            else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+            {
+                Snackbar.Add(ret.ErrorMessage, Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("何らかの問題が発生しました。購買スタッフまでお声がけください。", Severity.Error);
+            }
+            await GetProducts();
+            StateHasChanged();
         }
-
-        await GetProducts();
-        StateHasChanged();
+        else
+        {
+            Snackbar.Add("購入情報を入力してください。");
+        }
     }
 
     protected override async Task OnInitializedAsync()

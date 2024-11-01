@@ -1,23 +1,21 @@
-﻿using Infra.Persistance.Context;
-using Infra.Persistance.Entities;
+﻿using Infra.Persistance.Entities;
+using Infra.Repositories;
 using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 
 namespace PurchaseWeb.Pages;
 
 public partial class PurchaseHistory
 {
-    public required ApplicationDbContext DbFactory { get; set; }
+    [Inject]
+    public required IPurchaseLogRepository PurchaseLogRepository { get; set; }
 
     [Inject]
-    public required IDbContextFactory<ApplicationDbContext> DBFactory { get; set; }
+    public required IProductRepository ProductRepository { get; set; }
 
     public List<Product> Products { get; set; } = [];
 
     public List<PurchaseLog> PurchaseLogs { get; set; } = [];
-
-    public int Received { get; set; }
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
@@ -28,42 +26,38 @@ public partial class PurchaseHistory
     /// <param name="name"></param>
     /// <param name="price"></param>
     /// <param name="misc"></param>
-    public void DeletePurchase(string purchaseId)
+    public async void DeletePurchase(PurchaseLog target)
     {
-        try
+        var data = PurchaseLog.Delete(target);
+        var ret = await PurchaseLogRepository.DeleteAsync(data);
+        if (ret != null && ret.IsSuccess)
         {
-            var a = DbFactory.PurchaseLog.Single(x => x.LogId == purchaseId);
-            if (a != null)
-            {
-                a.DeleteFlag = true;
-                DbFactory.PurchaseLog.Update(a);
-                DbFactory.SaveChanges();
-            }
-
-            Snackbar.Add("取り消しました。", Severity.Success);
-            Received = 0;
+            Snackbar.Add("削除しました。", Severity.Success);
         }
-        catch (Exception ex)
+        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ret.ErrorMessage, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("削除に失敗しました。", Severity.Error);
         }
 
-        GetProducts();
+        await GetProducts();
         StateHasChanged();
     }
 
     /// <summary>
     /// 製品情報を取得する
     /// </summary>
-    public void GetProducts()
+    public async Task GetProducts()
     {
-        DbFactory = DBFactory.CreateDbContext();
-        Products = DbFactory.Product.OrderBy(x => x.CreateDate).ToList();
-        PurchaseLogs = DbFactory.PurchaseLog.Where(x => x.DeleteFlag == false).OrderByDescending(x => x.PurchaseDate).ToList();
+        Products = await ProductRepository.GetActiveProducts();
+        PurchaseLogs = await PurchaseLogRepository.GetPurchaseLogsAsync();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        GetProducts();
+        await GetProducts();
     }
 }

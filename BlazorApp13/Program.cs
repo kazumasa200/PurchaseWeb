@@ -17,6 +17,7 @@ builder.Services.AddMudServices();
 // ƒŠƒ|ƒWƒgƒŠ‚Ì“o˜^
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
+builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
 
 var app = builder.Build();
 
