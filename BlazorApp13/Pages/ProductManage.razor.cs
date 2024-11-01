@@ -105,7 +105,7 @@ public partial class ProductManage
             Snackbar.Add("更新成功", Severity.Success);
             ResetForm();
         }
-        else if(ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
         {
             Snackbar.Add(ret.ErrorMessage, Severity.Error);
         }
