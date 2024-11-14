@@ -1,3 +1,12 @@
+  --ユーザーの作成
+CREATE USER test;
+--DBの作成
+CREATE DATABASE test;
+--ユーザーにDBの権限をまとめて付与
+GRANT ALL PRIVILEGES ON DATABASE test TO test;
+--ユーザーを切り替え
+\c test
+
 -- 購入ログ
 create table purchase_log (
   log_id varchar(100) not null
