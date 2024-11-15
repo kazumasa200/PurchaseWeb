@@ -4,15 +4,15 @@
 <PageTitle>商品管理</PageTitle>
 
 <MudStack>
-    <MudDataGrid T="Product" Items="@Products"  EditMode="@(DataGridEditMode.Form)" ReadOnly="false"
-                 Bordered="true" EditTrigger="@(DataGridEditTrigger.Manual)" CommittedItemChanges="UpdateProduct">
+    <MudDataGrid T="Product" Items="@Products"  EditMode="DataGridEditMode.Form" ReadOnly="false"
+                 Bordered="true" EditTrigger="DataGridEditTrigger.Manual" CommittedItemChanges="UpdateProduct">
         <Columns>
             <PropertyColumn Property="x => x.ProductName" Title="商品名" />
             <PropertyColumn Property="x => x.Price" Title="価格" />
             <PropertyColumn Property="x => x.Misc" Title="その他備考" />
             <TemplateColumn CellClass="d-flex justify-end">
                 <CellTemplate>
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                    @* <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" /> *@
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(x => DeleteProduct(context.Item))" />
                 </CellTemplate>
             </TemplateColumn>

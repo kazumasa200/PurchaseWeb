@@ -52,7 +52,7 @@ public partial class PurchaseHistory
     /// </summary>
     public async Task GetProducts()
     {
-        Products = await ProductRepository.GetActiveProducts();
+        Products = await ProductRepository.GetAllProducts();
         PurchaseLogs = await PurchaseLogRepository.GetPurchaseLogsAsync();
     }
 

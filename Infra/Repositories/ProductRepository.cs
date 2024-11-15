@@ -14,6 +14,12 @@ public interface IProductRepository
     public Task<List<Product>> GetActiveProducts();
 
     /// <summary>
+    /// 削除状態にかかわらず全ての商品を取得する
+    /// </summary>
+    /// <returns></returns>
+    public Task<List<Product>> GetAllProducts();
+
+    /// <summary>
     /// 商品を追加
     /// </summary>
     /// <param name="product">追加する商品</param>
@@ -37,6 +43,21 @@ public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory
                 .Where(x => !x.DeleteFlag)
                 .OrderBy(x => x.CreateDate)
                 .ToListAsync());
+    }
+
+    public async Task<List<Product>> GetAllProducts()
+    {
+        try
+        {
+            return await ExecuteInContextAsync(context =>
+            context.Product
+                .OrderBy(x => x.CreateDate)
+                .ToListAsync());
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     public async Task<Result<Product>> AddAsync(Product product)
