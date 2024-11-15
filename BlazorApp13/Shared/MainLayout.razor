@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using PurchaseWeb.Component
+@inherits LayoutComponentBase
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -12,6 +13,7 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudText>【EX.GAME SAMPO】購買！</MudText>
         <MudSpacer />
+        <ArchitectureInfo />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
         <MudDrawerHeader>
