@@ -2,7 +2,6 @@
 @using System.Text.Json
 @using Infra.Repositories
 @using Markdig
-@inject LMStudioService LMStudioService
 
 
 <MudCard>
@@ -47,7 +46,7 @@
                         }
                         else
                         {
-                            message.Content = Markdown.ToHtml(message.Content);
+                            message.Content = Markdown.ToHtml(message.Content, pipeline);
                             @((MarkupString)message.Content)
                         }
                     </MudPaper>

@@ -25,6 +25,12 @@ public partial class Register
     [Inject]
     public required ISnackbar Snackbar { get; set; }
 
+    [Inject]
+    public required UserState UserState { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
     public async Task GetProducts()
     {
         Products = await ProductBuyRepository.GetActiveProductBuy();
@@ -74,5 +80,10 @@ public partial class Register
     protected override async Task OnInitializedAsync()
     {
         await GetProducts();
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
     }
 }

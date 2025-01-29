@@ -1,6 +1,9 @@
-﻿@using PurchaseWeb.Component
+﻿@using Infra.Repositories
+@using PurchaseWeb.Component
 @inherits LayoutComponentBase
 @inject NavigationManager navigationManager
+@inject UserState userState
+@implements IDisposable
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -22,7 +25,15 @@
         <MudDivider Class="pa-2" DividerType="DividerType.Middle"/>
         <NavMenu/>
         <MudSpacer></MudSpacer>
-        <MudButton Variant="Variant.Filled"  Color="Color.Primary" OnClick="NavigateToChat">ログイン</MudButton>
+        @if (userState.IsStoreUser)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NavigateToChat">ログイン済み</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToChat">ログイン</MudButton>
+        }
+        
     </MudDrawer>
     <MudMainContent Class="px-4">
         @Body
@@ -40,5 +51,15 @@
     void NavigateToChat()
     {
         navigationManager.NavigateTo("/");
+    }
+
+    protected override void OnInitialized()
+    {
+        userState.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        userState.OnStateChanged -= StateHasChanged;
     }
 }

@@ -10,6 +10,9 @@ public partial class ProductManage
     [Inject]
     public required IProductRepository ProductRepository { get; set; }
 
+    [Inject]
+    public required UserState UserState { get; set; }
+
     public string NewProdMisc { get; set; } = string.Empty;
 
     public string NewProdName { get; set; } = string.Empty;
@@ -18,6 +21,9 @@ public partial class ProductManage
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
 
     /// <summary>
     /// 　商品のリスト
@@ -120,5 +126,10 @@ public partial class ProductManage
     protected override async Task OnInitializedAsync()
     {
         await GetProducts();
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
     }
 }

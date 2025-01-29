@@ -1,4 +1,5 @@
 ﻿using Infra.Persistance.Entities;
+using Infra.Repositories;
 using Markdig;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
@@ -12,9 +13,13 @@ public partial class Chat
     private string selectedModel;
     private string currentMessage;
     private bool isThinking;
+    private MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
     [Inject]
-    ISnackbar Snackbar { get; set; }
+    public required ISnackbar Snackbar { get; set; }
+
+    [Inject]
+    public required LMStudioService LMStudioService { get; set; }
 
     private bool CanSendMessage => !string.IsNullOrEmpty(selectedModel) && !string.IsNullOrEmpty(currentMessage);
 
@@ -23,6 +28,10 @@ public partial class Chat
         try
         {
             models = await LMStudioService.GetModelsAsync();
+            if (models.Count > 0)
+            {
+                selectedModel = models[0].Id;
+            }
         }
         catch (Exception ex)
         {
@@ -78,9 +87,9 @@ public partial class Chat
 
             thinkingContents.Add(new ThinkingContent
             {
-                BeforeThink = Markdown.ToHtml(beforeThink),
-                ThinkText = Markdown.ToHtml(thinkText),
-                AfterThink = Markdown.ToHtml(content)
+                BeforeThink = Markdown.ToHtml(beforeThink, pipeline),
+                ThinkText = Markdown.ToHtml(thinkText, pipeline),
+                AfterThink = Markdown.ToHtml(content, pipeline)
             });
         }
 

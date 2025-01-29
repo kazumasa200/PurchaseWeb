@@ -13,6 +13,12 @@ public partial class PurchaseHistory
     [Inject]
     public required IProductRepository ProductRepository { get; set; }
 
+    [Inject]
+    public required UserState UserState { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
     public List<Product> Products { get; set; } = [];
 
     public List<PurchaseLog> PurchaseLogs { get; set; } = [];
@@ -59,5 +65,10 @@ public partial class PurchaseHistory
     protected override async Task OnInitializedAsync()
     {
         await GetProducts();
+    }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
     }
 }

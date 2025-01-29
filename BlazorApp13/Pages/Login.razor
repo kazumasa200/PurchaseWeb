@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/login"
 
 @using Infra.Repositories
 @inject NavigationManager NavigationManager
@@ -25,6 +26,9 @@
                 <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
                     ログイン成功
                 </MudText>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToProductManage" Class="mb-4">商品管理</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToRegister" Class="mb-4">購入レジ</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToPurchaseHistory" Class="mb-4">購入履歴</MudButton>
             }
         </MudCardContent>
         <MudCardActions Class="d-flex justify-center">
@@ -49,8 +53,6 @@
         // ログイン後の処理、例: チャットページに遷移や認証エラーメッセージ
         // 本例ではシンプルにパスワードをクリア
         password = string.Empty;
-
-        await JSRuntime.InvokeVoidAsync("location.reload");
     }
 
     private void NavigateToChat()
@@ -58,4 +60,24 @@
         // チャットページへの遷移
         NavigationManager.NavigateTo("/chat");
     }
+
+    private void NavigateToProductManage()
+    {
+        // 商品管理ページへの遷移
+        NavigationManager.NavigateTo("/productmanage");
+    }
+
+    private void NavigateToRegister()
+    {
+        // レジスターページへの遷移
+        NavigationManager.NavigateTo("/register");
+    }
+
+    private void NavigateToPurchaseHistory()
+    {
+        // 購入履歴への遷移
+        NavigationManager.NavigateTo("/purchasehistory");
+    }
+
+
 }

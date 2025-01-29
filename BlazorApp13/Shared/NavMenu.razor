@@ -1,5 +1,7 @@
 ﻿@using Infra.Repositories
 @inject UserState userState
+@implements IDisposable
+
 <MudNavMenu>
     @if (userState.IsStoreUser)
     {
@@ -10,3 +12,15 @@
     <MudNavLink Href="/chat" Match="NavLinkMatch.Prefix">AIチャット</MudNavLink>
 
 </MudNavMenu>
+
+@code {
+    protected override void OnInitialized()
+    {
+        userState.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        userState.OnStateChanged -= StateHasChanged;
+    }
+}
