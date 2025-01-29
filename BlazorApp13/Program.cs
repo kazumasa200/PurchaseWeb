@@ -18,6 +18,7 @@ builder.Services.AddMudServices();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
+builder.Services.AddScoped<LMStudioService>();
 
 var app = builder.Build();
 
