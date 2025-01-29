@@ -1,26 +1,28 @@
 ﻿@using PurchaseWeb.Component
 @inherits LayoutComponentBase
+@inject NavigationManager navigationManager
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<PageTitle>購買部</PageTitle>
+<PageTitle>noeleve.net</PageTitle>
 
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText>【EX.GAME SAMPO】購買！</MudText>
         <MudSpacer />
         <ArchitectureInfo />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
         <MudDrawerHeader>
-            <MudText Typo="Typo.h5" Class="mt-1">購買部！</MudText>
+            <MudText Typo="Typo.h5" Class="mt-1">Noeleve.net</MudText>
         </MudDrawerHeader>
         <MudDivider Class="pa-2" DividerType="DividerType.Middle"/>
         <NavMenu/>
+        <MudSpacer></MudSpacer>
+        <MudButton Variant="Variant.Filled"  Color="Color.Primary" OnClick="NavigateToChat">ログイン</MudButton>
     </MudDrawer>
     <MudMainContent Class="px-4">
         @Body
@@ -33,5 +35,10 @@
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    void NavigateToChat()
+    {
+        navigationManager.NavigateTo("/");
     }
 }

@@ -1,0 +1,61 @@
+﻿@page "/"
+
+@using Infra.Repositories
+@inject NavigationManager NavigationManager
+@inject UserState userState
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center min-vh-100">
+    <MudCard Class="pa-6 ma-2" MaxWidth="500px" Style="border-radius: 20px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);">
+        <MudCardHeader>
+            <MudText Typo="Typo.h4" Align="Align.Center">ログイン</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (!userState.IsStoreUser)
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    パスワードを入力してログインしてください
+                </MudText>
+                <MudTextField @bind-Value="password" Immediate Label="パスワード" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-4" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="Logins" Class="mb-4">
+                    ログイン
+                </MudButton>
+            }
+            else{
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    ログイン成功
+                </MudText>
+            }
+        </MudCardContent>
+        <MudCardActions Class="d-flex justify-center">
+            <MudText Typo="Typo.body2" Class="mb-1">または</MudText>
+        </MudCardActions>
+        <MudCardActions>
+            <MudButton Color="Color.Secondary" Variant="Variant.Outlined" FullWidth OnClick="NavigateToChat">
+                チャットにアクセスしたい人はこちら
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string password { get; set; }
+
+    private async Task Logins()
+    {
+        // ユーザーのパスワードを UserState にセット
+        userState.SetStoreUser(password);
+
+        // ログイン後の処理、例: チャットページに遷移や認証エラーメッセージ
+        // 本例ではシンプルにパスワードをクリア
+        password = string.Empty;
+
+        await JSRuntime.InvokeVoidAsync("location.reload");
+    }
+
+    private void NavigateToChat()
+    {
+        // チャットページへの遷移
+        NavigationManager.NavigateTo("/chat");
+    }
+}

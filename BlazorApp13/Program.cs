@@ -19,6 +19,21 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
 builder.Services.AddScoped<LMStudioService>();
+// AppSettingsの構成を追加
+builder.Services.Configure<AppSettings>(
+    builder.Configuration);
+
+// サービスを追加
+builder.Services.AddScoped<AppSettingsService>();
+builder.Services.AddSingleton<AppSettings>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var appSettings = new AppSettings();
+    configuration.Bind(appSettings);
+    return appSettings;
+});
+
+builder.Services.AddSingleton<UserState>();
 
 var app = builder.Build();
 

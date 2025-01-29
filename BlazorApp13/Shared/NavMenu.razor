@@ -1,5 +1,12 @@
-﻿<MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All">商品管理</MudNavLink>
-    <MudNavLink Href="/register" Match="NavLinkMatch.Prefix">購入レジ</MudNavLink>
-    <MudNavLink Href="/purchasehistory" Match="NavLinkMatch.Prefix">購入履歴</MudNavLink>
+﻿@using Infra.Repositories
+@inject UserState userState
+<MudNavMenu>
+    @if (userState.IsStoreUser)
+    {
+        <MudNavLink Href="/productmanage" Match="NavLinkMatch.All">商品管理</MudNavLink>
+        <MudNavLink Href="/register" Match="NavLinkMatch.Prefix">購入レジ</MudNavLink>
+        <MudNavLink Href="/purchasehistory" Match="NavLinkMatch.Prefix">購入履歴</MudNavLink>
+    }
+    <MudNavLink Href="/chat" Match="NavLinkMatch.Prefix">AIチャット</MudNavLink>
+
 </MudNavMenu>
