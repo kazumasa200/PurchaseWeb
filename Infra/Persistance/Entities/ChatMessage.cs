@@ -2,14 +2,14 @@
 
 public class ChatMessage
 {
-    public string Role { get; set; }
-    public string Content { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
     public List<ThinkingContent> ThinkingContents { get; set; } = new();
 }
 
 public class ThinkingContent
 {
-    public string BeforeThink { get; set; }
-    public string ThinkText { get; set; }
-    public string AfterThink { get; set; }
+    public string BeforeThink { get; set; } = string.Empty;
+    public string ThinkText { get; set; } = string.Empty;
+    public string AfterThink { get; set; } = string.Empty;
 }

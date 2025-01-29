@@ -25,7 +25,7 @@ builder.Services.Configure<AppSettings>(
 
 // サービスを追加
 builder.Services.AddScoped<AppSettingsService>();
-builder.Services.AddSingleton<AppSettings>(sp =>
+builder.Services.AddScoped<AppSettings>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var appSettings = new AppSettings();
@@ -33,7 +33,7 @@ builder.Services.AddSingleton<AppSettings>(sp =>
     return appSettings;
 });
 
-builder.Services.AddSingleton<UserState>();
+builder.Services.AddScoped<UserState>();
 
 var app = builder.Build();
 

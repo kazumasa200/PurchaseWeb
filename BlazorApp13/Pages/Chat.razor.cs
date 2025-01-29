@@ -1,4 +1,5 @@
 ﻿using Infra.Persistance.Entities;
+using Markdig;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
@@ -77,9 +78,9 @@ public partial class Chat
 
             thinkingContents.Add(new ThinkingContent
             {
-                BeforeThink = beforeThink,
-                ThinkText = thinkText,
-                AfterThink = content
+                BeforeThink = Markdown.ToHtml(beforeThink),
+                ThinkText = Markdown.ToHtml(thinkText),
+                AfterThink = Markdown.ToHtml(content)
             });
         }
 
