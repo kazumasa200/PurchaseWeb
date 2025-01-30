@@ -20,12 +20,16 @@ public class LMStudioService
     public async Task<List<LMStudioModel>> GetModelsAsync()
     {
         var response = await _httpClient.GetFromJsonAsync<JsonDocument>("/v1/models");
+        if (response == null)
+        {
+            return [];
+        }
         var models = response.RootElement.GetProperty("data")
             .EnumerateArray()
             .Select(x => new LMStudioModel
             {
-                Id = x.GetProperty("id").GetString(),
-                Name = x.GetProperty("id").GetString()
+                Id = x.GetProperty("id")!.GetString()!,
+                Name = x.GetProperty("id")!.GetString()!
             })
             .ToList();
         return models;
@@ -43,15 +47,19 @@ public class LMStudioService
         var request = new
         {
             model = modelId,
-            messages = messages
+            messages
         };
 
         var response = await _httpClient.PostAsJsonAsync("/v1/chat/completions", request);
         var result = await response.Content.ReadFromJsonAsync<JsonDocument>();
-        return result.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
+        if (result == null)
+        {
+            return string.Empty;
+        }
+        return result.RootElement!
+            .GetProperty("choices")[0]!
+            .GetProperty("message")!
+            .GetProperty("content")!
+            .GetString()!;
     }
 }

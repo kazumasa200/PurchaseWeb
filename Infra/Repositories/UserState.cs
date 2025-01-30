@@ -6,7 +6,7 @@ public class UserState(AppSettings appSettings)
 
     private bool _isStoreUser;
 
-    public event Action OnStateChanged;
+    public event Action OnStateChanged = default!;
 
     public bool IsStoreUser
     {

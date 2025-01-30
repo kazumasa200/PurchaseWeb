@@ -4,7 +4,7 @@ public class ChatMessage
 {
     public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
-    public List<ThinkingContent> ThinkingContents { get; set; } = new();
+    public List<ThinkingContent> ThinkingContents { get; set; } = [];
 }
 
 public class ThinkingContent

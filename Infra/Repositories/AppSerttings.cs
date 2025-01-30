@@ -7,14 +7,9 @@ public class AppSettings
     public string StorePassword { get; set; } = string.Empty;
 }
 
-public class AppSettingsService
+public class AppSettingsService(IConfiguration configuration)
 {
-    private readonly IConfiguration _configuration;
-
-    public AppSettingsService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
     public string GetStorePassword()
     {

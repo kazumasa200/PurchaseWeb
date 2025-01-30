@@ -7,18 +7,13 @@ namespace Infra.Persistance;
 /// リポジトリの基底クラス
 /// DbContextの生成と破棄を管理する
 /// </summary>
-public abstract class BaseRepository
+/// <remarks>
+/// コンストラクタ
+/// </remarks>
+/// <param name="dbFactory">DbContextファクトリ</param>
+public abstract class BaseRepository(IDbContextFactory<ApplicationDbContext> dbFactory)
 {
-    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
-
-    /// <summary>
-    /// コンストラクタ
-    /// </summary>
-    /// <param name="dbFactory">DbContextファクトリ</param>
-    protected BaseRepository(IDbContextFactory<ApplicationDbContext> dbFactory)
-    {
-        _dbFactory = dbFactory;
-    }
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory = dbFactory;
 
     /// <summary>
     /// DbContextを使用して非同期操作を実行する

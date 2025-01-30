@@ -8,12 +8,12 @@ namespace PurchaseWeb.Pages;
 
 public partial class Chat
 {
-    private List<LMStudioModel> models = new();
-    private List<ChatMessage> chatMessages = new();
-    private string selectedModel;
-    private string currentMessage;
+    private List<LMStudioModel> models = [];
+    private readonly List<ChatMessage> chatMessages = [];
+    private string selectedModel = string.Empty;
+    private string currentMessage = string.Empty;
     private bool isThinking;
-    private MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+    private readonly MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
@@ -35,6 +35,7 @@ public partial class Chat
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
             Snackbar.Add("サーバーがオフラインのようです", Severity.Error);
         }
     }
@@ -62,6 +63,7 @@ public partial class Chat
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
             Snackbar.Add("エラーが発生しました", Severity.Error);
         }
         isThinking = false;
@@ -80,10 +82,10 @@ public partial class Chat
 
             if (thinkStartIndex == -1 || thinkEndIndex == -1) break;
 
-            var beforeThink = content.Substring(0, thinkStartIndex);
+            var beforeThink = content[..thinkStartIndex];
             var thinkText = content.Substring(thinkStartIndex + 7, thinkEndIndex - thinkStartIndex - 7);
 
-            content = content.Substring(thinkEndIndex + 8);
+            content = content[(thinkEndIndex + 8)..];
 
             thinkingContents.Add(new ThinkingContent
             {
