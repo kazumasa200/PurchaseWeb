@@ -32,7 +32,7 @@
                         {
                             @foreach (var thinking in message.ThinkingContents)
                             {
-                                <MudText>@thinking.BeforeThink</MudText>
+                                <MudMarkdown Value="@thinking.BeforeThink" />
                                 <MudExpansionPanel Class="mt-2">
                                     <TitleContent>
                                         <MudText>思考プロセス</MudText>
@@ -41,13 +41,12 @@
                                         <MudText Color="Color.Info">@((MarkupString)thinking.ThinkText)</MudText>
                                     </ChildContent>
                                 </MudExpansionPanel>
-                                <MudText>@((MarkupString)thinking.AfterThink)</MudText>
+                                <MudMarkdown Value="@thinking.AfterThink"></MudMarkdown>
                             }
                         }
                         else
                         {
-                            message.Content = Markdown.ToHtml(message.Content, pipeline);
-                            @((MarkupString)message.Content)
+                            <MudMarkdown Value="@message.Content" />
                         }
                     </MudPaper>
                 }

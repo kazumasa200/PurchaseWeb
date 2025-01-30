@@ -89,9 +89,9 @@ public partial class Chat
 
             thinkingContents.Add(new ThinkingContent
             {
-                BeforeThink = Markdown.ToHtml(beforeThink, pipeline),
-                ThinkText = Markdown.ToHtml(thinkText, pipeline),
-                AfterThink = Markdown.ToHtml(content, pipeline)
+                BeforeThink = beforeThink,
+                ThinkText = thinkText,
+                AfterThink = content
             });
         }
 

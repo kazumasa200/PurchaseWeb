@@ -1,6 +1,7 @@
 using Infra.Persistance.Context;
 using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 options.UseNpgsql(builder.Configuration.GetConnectionString("db")));
 
 builder.Services.AddMudServices();
+builder.Services.AddMudMarkdownServices();
 
 // ƒŠƒ|ƒWƒgƒŠ‚Ì“o˜^
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
