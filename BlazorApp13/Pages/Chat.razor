@@ -2,7 +2,7 @@
 @using System.Text.Json
 @using Infra.Repositories
 @using Markdig
-
+@using PurchaseWeb.Component
 
 <MudCard>
     <MudCardHeader>
@@ -15,42 +15,42 @@
                 <MudSelectItem Value="@model.Id">@model.Name</MudSelectItem>
             }
         </MudSelect>
-
-        <MudPaper Class="d-flex flex-column mt-4" Style="height: 50vh; overflow-y: auto;">
-            @foreach (var message in chatMessages)
-            {
-                @if (message.Role == "user")
+        <ScrollToBottom Context="_scrollToBottomContext" ScrollHostId="scrollHost" />
+        <MudPaper Class="d-flex flex-column mt-4" Style="height: 50vh; overflow-y: auto;" id="scrollHost">
+                @foreach (var message in chatMessages)
                 {
-                    <MudPaper Class="pa-4 my-2 ml-auto" Style="max-width: 80%; background-color: #E3F2FD; border-radius: 15px;">
-                        <MudText>@message.Content</MudText>
-                    </MudPaper>
-                }
-                else
-                {
-                    <MudPaper Class="pa-4 my-2 mr-auto" Style="max-width: 80%; background-color: #F5F5F5; border-radius: 15px;">
-                        @if (message.ThinkingContents.Any())
-                        {
-                            @foreach (var thinking in message.ThinkingContents)
+                    @if (message.Role == "user")
+                    {
+                        <MudPaper Class="pa-4 my-2 ml-auto" Style="max-width: 80%; background-color: #E3F2FD; border-radius: 15px;">
+                            <MudText>@message.Content</MudText>
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <MudPaper Class="pa-4 my-2 mr-auto" Style="max-width: 80%; background-color: #F5F5F5; border-radius: 15px;">
+                            @if (message.ThinkingContents.Any())
                             {
-                                <MudMarkdown Value="@thinking.BeforeThink" />
-                                <MudExpansionPanel Class="mt-2">
-                                    <TitleContent>
-                                        <MudText>思考プロセス</MudText>
-                                    </TitleContent>
-                                    <ChildContent>
-                                        <MudText Color="Color.Info">@((MarkupString)thinking.ThinkText)</MudText>
-                                    </ChildContent>
-                                </MudExpansionPanel>
-                                <MudMarkdown Value="@thinking.AfterThink"></MudMarkdown>
+                                @foreach (var thinking in message.ThinkingContents)
+                                {
+                                    <MudMarkdown Value="@thinking.BeforeThink" />
+                                    <MudExpansionPanel Class="mt-2">
+                                        <TitleContent>
+                                            <MudText>思考プロセス</MudText>
+                                        </TitleContent>
+                                        <ChildContent>
+                                            <MudText Color="Color.Info">@((MarkupString)thinking.ThinkText)</MudText>
+                                        </ChildContent>
+                                    </MudExpansionPanel>
+                                    <MudMarkdown Value="@thinking.AfterThink"></MudMarkdown>
+                                }
                             }
-                        }
-                        else
-                        {
-                            <MudMarkdown Value="@message.Content" />
-                        }
-                    </MudPaper>
+                            else
+                            {
+                                <MudMarkdown Value="@message.Content" />
+                            }
+                        </MudPaper>
+                    }
                 }
-            }
         </MudPaper>
         @if(isThinking){
             <MudProgressLinear Size="Size.Large" Class="mt-4" Indeterminate />

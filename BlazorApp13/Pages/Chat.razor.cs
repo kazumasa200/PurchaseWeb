@@ -2,7 +2,9 @@
 using Infra.Repositories;
 using Markdig;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
+using System.Text;
 
 namespace PurchaseWeb.Pages;
 
@@ -12,14 +14,20 @@ public partial class Chat
     private readonly List<ChatMessage> chatMessages = [];
     private string selectedModel = string.Empty;
     private string currentMessage = string.Empty;
+    private string lastChunk = "";
+    private string lastMessage = "";
     private bool isThinking;
     private readonly MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+    private readonly ScrollToBottomContext _scrollToBottomContext = new();
 
     [Inject]
     public required ISnackbar Snackbar { get; set; }
 
     [Inject]
     public required LMStudioService LMStudioService { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
 
     private bool CanSendMessage => !string.IsNullOrEmpty(selectedModel) && !string.IsNullOrEmpty(currentMessage);
 
@@ -43,31 +51,46 @@ public partial class Chat
     private async Task SendMessage()
     {
         if (!CanSendMessage) return;
-
+        _scrollToBottomContext.RequestScrollToBottom();
         // ユーザーメッセージを追加
         var userMessage = new ChatMessage { Role = "user", Content = currentMessage };
         chatMessages.Add(userMessage);
+
+        // 入力フィールドをクリア
         currentMessage = string.Empty;
-        isThinking = true;
+
+        // AIの応答メッセージを準備
+        var assistantMessage = new ChatMessage
+        {
+            Role = "assistant",
+            Content = string.Empty,
+            ThinkingContents = new List<ThinkingContent>()
+        };
+        chatMessages.Add(assistantMessage);
+
+        var responseBuilder = new StringBuilder();
+
         try
         {
-            // 全チャット履歴を送信
-            var response = await LMStudioService.SendMessageAsync(selectedModel, chatMessages);
+            await foreach (var chunk in LMStudioService.StreamMessagesAsync(selectedModel, chatMessages ,_scrollToBottomContext))
+            {
+                responseBuilder.Append(chunk);
+                assistantMessage.Content = responseBuilder.ToString();
 
-            // AIの応答をパースして追加
-            var assistantMessage = ParseAIResponse("assistant", response);
-            chatMessages.Add(assistantMessage);
-
-            // 入力フィールドをクリア
-            currentMessage = string.Empty;
+                // think タグのパース処理
+                if (assistantMessage.Content.Contains("</think>"))
+                {
+                    var parsedMessage = ParseAIResponse("assistant", assistantMessage.Content);
+                    assistantMessage.ThinkingContents = parsedMessage.ThinkingContents;
+                }
+                await InvokeAsync(StateHasChanged);
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
-            Snackbar.Add("エラーが発生しました", Severity.Error);
+            assistantMessage.Content = $"エラーが発生しました: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
         }
-        isThinking = false;
-        StateHasChanged();
     }
 
     private ChatMessage ParseAIResponse(string role, string content)
