@@ -1,39 +1,26 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">購買部！</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿@using Infra.Repositories
+@inject UserState userState
+@implements IDisposable
 
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> 商品管理
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="oi oi-plus" aria-hidden="true"></span> 購入
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> 購入履歴
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<MudNavMenu>
+    @if (userState.IsStoreUser)
+    {
+        <MudNavLink Href="/productmanage" Match="NavLinkMatch.All">商品管理</MudNavLink>
+        <MudNavLink Href="/register" Match="NavLinkMatch.Prefix">購入レジ</MudNavLink>
+        <MudNavLink Href="/purchasehistory" Match="NavLinkMatch.Prefix">購入履歴</MudNavLink>
+    }
+    <MudNavLink Href="/chat" Match="NavLinkMatch.Prefix">AIチャット</MudNavLink>
+
+</MudNavMenu>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    protected override void OnInitialized()
     {
-        collapseNavMenu = !collapseNavMenu;
+        userState.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        userState.OnStateChanged -= StateHasChanged;
     }
 }

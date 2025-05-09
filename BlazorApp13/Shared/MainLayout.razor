@@ -1,22 +1,65 @@
-﻿@inherits LayoutComponentBase
+﻿@using Infra.Repositories
+@using PurchaseWeb.Component
+@inherits LayoutComponentBase
+@inject NavigationManager navigationManager
+@inject UserState userState
+@implements IDisposable
 
-<PageTitle>購買</PageTitle>
-
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            人間さんぽ VOL.2 at渋谷LOFT9
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
 <MudThemeProvider />
+<MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+
+<PageTitle>noeleve.net</PageTitle>
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudSpacer />
+        <ArchitectureInfo />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5" Class="mt-1">Noeleve.net</MudText>
+        </MudDrawerHeader>
+        <MudDivider Class="pa-2" DividerType="DividerType.Middle"/>
+        <NavMenu/>
+        <MudSpacer></MudSpacer>
+        @if (userState.IsStoreUser)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NavigateToChat">ログイン済み</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToChat">ログイン</MudButton>
+        }
+        
+    </MudDrawer>
+    <MudMainContent Class="px-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    void NavigateToChat()
+    {
+        navigationManager.NavigateTo("/");
+    }
+
+    protected override void OnInitialized()
+    {
+        userState.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        userState.OnStateChanged -= StateHasChanged;
+    }
+}
