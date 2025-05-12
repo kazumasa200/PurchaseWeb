@@ -1,0 +1,111 @@
+﻿@page "/Lottery"
+@using System.Threading
+@using System.Collections.Generic
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Elevation="3" Class="pa-4">
+        <MudText Typo="Typo.h4" Class="mb-4">宝くじシミュレーター</MudText>
+        
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudButton FullWidth="true" 
+                           Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           OnClick="StartSimulation" 
+                           Disabled="@(_simulationRunning)">
+                    開始(&S)
+                </MudButton>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudButton FullWidth="true" 
+                           Variant="Variant.Filled" 
+                           Color="@(_simulationRunning ? Color.Error : Color.Secondary)" 
+                           OnClick="StopOrResetSimulation">
+                    @(_simulationRunning ? "停止(&T)" : "リセット(&R)")
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        
+        <MudDivider Class="my-4" />
+        
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudList T="string">
+                    <MudListItem>
+                        <MudText>購入回数: @_dwCount 回</MudText>
+                    </MudListItem>
+                    <MudListItem>
+                        <MudText>出金額: @_dwPayment.ToString("N0") 円</MudText>
+                    </MudListItem>
+                    <MudListItem>
+                        <MudText>当選額: @_dwPrize.ToString("N0") 円</MudText>
+                    </MudListItem>
+                    <MudListItem>
+                        <MudText Color="@(_dwLoss >= 0 ? Color.Success : Color.Error)">
+                            損益額: @_dwLoss.ToString("N0") 円
+                        </MudText>
+                    </MudListItem>
+                </MudList>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudCard>
+                    <MudCardHeader>
+                        <MudText Typo="Typo.h6">当選回数統計</MudText>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText>1等: @_winCounts[0]回</MudText>
+                        <MudText>2等: @_winCounts[1]回</MudText>
+                        <MudText>3等: @_winCounts[2]回</MudText>
+                        <MudText>4等: @_winCounts[3]回</MudText>
+                        <MudText>5等: @_winCounts[4]回</MudText>
+                        <MudText>6等: @_winCounts[5]回</MudText>
+                        <MudText>7等: @_winCounts[6]回</MudText>
+                        <MudText>前後賞: @_winCounts[7]回</MudText>
+                        <MudText>組違い: @_winCounts[8]回</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+        
+        <MudDivider Class="my-4" />
+        
+        <MudText Typo="Typo.h5" Class="mb-2">当選履歴</MudText>
+        <MudTable Items="@_winHistory" Dense="true" Hover="true" Bordered="true" Striped="true">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">合計当選回数: @_winHistory.Count 回</MudText>
+                <MudSpacer />
+                @if (_winHistory.Count > 0)
+                {
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Error" 
+                               OnClick="@(() => _winHistory.Clear())" 
+                               Size="Size.Small">
+                        履歴クリア
+                    </MudButton>
+                }
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>No.</MudTh>
+                <MudTh>購入回数</MudTh>
+                <MudTh>等級</MudTh>
+                <MudTh>当選金額</MudTh>
+                <MudTh>累計損益</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="No.">@(_winHistory.IndexOf(context) + 1)</MudTd>
+                <MudTd DataLabel="購入回数">@context.PurchaseCount.ToString("N0")</MudTd>
+                <MudTd DataLabel="等級">@context.Rank</MudTd>
+                <MudTd DataLabel="当選金額">@context.Amount.ToString("N0") 円</MudTd>
+                <MudTd DataLabel="累計損益">
+                    <MudText Color="@(context.TotalBalance >= 0 ? Color.Success : Color.Error)">
+                        @context.TotalBalance.ToString("N0") 円
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 5, 10, 20, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
