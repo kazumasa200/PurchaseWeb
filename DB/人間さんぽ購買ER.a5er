@@ -1,7 +1,7 @@
-﻿# A5:ER FORMAT:18
+﻿# A5:ER FORMAT:21
 # A5:ER ENCODING:UTF8
 # A5:ER Mk-1 Copyright © 2007 m.matsubara
-# A5:SQL Mk-2 Version 2.19.1 Copyright © 1997 - 2024 m.matsubara
+# A5:SQL Mk-2 Version 2.21.0 Copyright © 1997 - 2026 m.matsubara
 #  https://a5m2.mmatsubara.com
 
 [Manager]
@@ -9,12 +9,9 @@ ProjectName=shop
 Author=
 MaxEntityRowShow=1000
 ReadOnlyRecommend=0
-Page=Main
 PageInfo="Main",2,"A3Landscape",$FFFFFF
 LogicalView=1
 DecodeDomain=0
-ViewModePageIndividually=1
-ViewMode=2
 ViewFormat=0
 UseNondependenceDashLine=0
 FontName=Tahoma
@@ -37,6 +34,7 @@ SqlSeparator=0
 UpperCaseKeyword=0
 ShowTag=1
 ShowCommonAttributes=0
+ShowDisableAttributes=0
 BugFixEntityWidth=1
 
 [Entity]
@@ -45,21 +43,22 @@ LName=商品マスタ
 Comment=
 TableInnerOption=
 TableOption=
-Page=Main
-Left=650
-Top=200
+Page=MAIN
+Left=1000
+Top=400
 Field="商品ID","product_id","varchar(100)","NOT NULL",0,"","",$FFFFFFFF,""
 Field="商品名","product_name","varchar(100)","NOT NULL",,"","",$FFFFFFFF,""
 Field="価格","price","integer","NOT NULL",,"","",$FFFFFFFF,""
-Field="作成日","create_date","timestamp with time zone","NOT NULL",,"","",$FFFFFFFF,""
+Field="作成日","create_date","timestamp","NOT NULL",,"","",$FFFFFFFF,""
 Field="備考","misc","varchar(100)",,,"","",$FFFFFFFF,""
 Field="更新日","update_date","timestamp",,,"","",$FFFFFFFF,""
 Field="削除フラグ","delete_flag","boolean","NOT NULL",,"","",$FFFFFFFF,""
+Field="テナントID","tenant_id","varchar(100)","NOT NULL",,"","",$FFFFFFFF,""
 EffectMode=None
 Color=$000000
 BkColor=$FFFFFF
-ModifiedDateTime=20240517162414
-Position="Main",650,200
+ModifiedDateTime=20260128002103
+Position="Main",1000,400
 ZOrder=1
 
 [Entity]
@@ -68,19 +67,20 @@ LName=購入ログ
 Comment=
 TableInnerOption=
 TableOption=
-Page=Main
-Left=1150
-Top=250
+Page=MAIN
+Left=1000
+Top=150
 Field="ログID","log_id","varchar(100)","NOT NULL",0,"","",$FFFFFFFF,""
 Field="商品ID","product_id","varchar(100)","NOT NULL",,"","",$FFFFFFFF,""
 Field="購入日時","purchase_date","timestamp","NOT NULL",,"","",$FFFFFFFF,""
 Field="数量","amount","integer","NOT NULL",,"","",$FFFFFFFF,""
 Field="削除フラグ","delete_flag","boolean","NOT NULL",,"","",$FFFFFFFF,""
+Field="テナントID","tenant_id","varchar(100)","NOT NULL",,"","",$FFFFFFFF,""
 EffectMode=None
 Color=$000000
 BkColor=$FFFFFF
-ModifiedDateTime=20240517143552
-Position="Main",1150,250
+ModifiedDateTime=20260128002059
+Position="Main",1000,150
 ZOrder=2
 
 [Relation]
@@ -92,7 +92,7 @@ Fields1=product_id
 Fields2=product_id
 Cardinarity1=
 Cardinarity2=
-Position="MAIN",0,1076,8924,809,R,R,""
+Position="MAIN",0,1076,8924,6861,R,R,""
 Dependence=0
 Caption=
 PName=
@@ -100,7 +100,70 @@ ModifiedDateTime=20240517143440
 LineMode=0
 Bar1=108
 Bar2=892
-Bar3=81
+Bar3=686
 TermPos1=R
 TermPos2=R
 ZOrder=3
+
+[Entity]
+PName=tenant
+LName=テナント
+Comment=
+TableInnerOption=
+TableOption=
+Page=Main
+Left=500
+Top=150
+Field="テナントID","tenant_id","varchar(100)","NOT NULL",0,"","",$FFFFFFFF,""
+Field="テナント名","tenant_name","varchar(100)","NOT NULL",,"","",$FFFFFFFF,""
+Field="作成日","create_date","timestamp","NOT NULL",,"","",$FFFFFFFF,""
+Field="更新日","update_date","timestamp",,,"","",$FFFFFFFF,""
+Field="削除フラグ","delete_flag","boolean","NOT NULL",,"","",$FFFFFFFF,""
+EffectMode=None
+Color=$000000
+BkColor=$FFFFFF
+ModifiedDateTime=20260128002106
+Position="Main",500,150
+ZOrder=4
+
+[Relation]
+Entity1=tenant
+Entity2=product
+RelationType1=1
+RelationType2=3
+Fields1=tenant_id
+Fields2=tenant_id
+Cardinarity1=
+Cardinarity2=
+Position="MAIN",0,8189,8921,764,R,R,""
+Dependence=0
+Caption=
+PName=
+LineMode=0
+Bar1=819
+Bar2=892
+Bar3=76
+TermPos1=R
+TermPos2=R
+ZOrder=5
+
+[Relation]
+Entity1=tenant
+Entity2=purchase_log
+RelationType1=1
+RelationType2=3
+Fields1=tenant_id
+Fields2=tenant_id
+Cardinarity1=
+Cardinarity2=
+Position="MAIN",0,1167,8833,972,R,R,""
+Dependence=0
+Caption=
+PName=
+LineMode=0
+Bar1=117
+Bar2=883
+Bar3=97
+TermPos1=R
+TermPos2=R
+ZOrder=6

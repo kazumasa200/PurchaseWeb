@@ -39,6 +39,16 @@ public class PurchaseLogConfiguration : IEntityTypeConfiguration<PurchaseLog>
             .HasColumnName("delete_flag")
             .IsRequired();
 
+        builder.Property(x => x.TenantId)
+            .HasColumnName("tenant_id")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // リレーションシップの設定
         builder.HasOne(e => e.Product)
             .WithMany(p => p.PurchaseLogs)

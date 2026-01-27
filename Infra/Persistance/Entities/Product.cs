@@ -3,8 +3,13 @@
 /// <summary>
 /// 商品マスタ
 /// </summary>
-public class Product
+public class Product : ITenantEntity
 {
+    /// <summary>
+    /// テナントID
+    /// </summary>
+    public string TenantId { get; set; } = string.Empty;
+
     /// <summary>
     /// 作成日
     /// </summary>
@@ -41,6 +46,8 @@ public class Product
     public DateTime? UpdateDate { get; private set; }
 
     public virtual ICollection<PurchaseLog> PurchaseLogs { get; private set; } = [];
+
+    public Tenant? Tenant { get; set; }
 
     /// <summary>
     /// モデル作成

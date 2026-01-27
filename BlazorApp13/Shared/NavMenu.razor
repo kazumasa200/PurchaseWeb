@@ -1,23 +1,42 @@
 ﻿@using Infra.Repositories
 @inject UserState userState
+@inject NavigationManager navigationManager
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <MudNavMenu>
     @if (userState.IsStoreUser)
     {
-        <MudNavLink Href="/productmanage" Match="NavLinkMatch.All">商品管理</MudNavLink>
-        <MudNavLink Href="/register" Match="NavLinkMatch.Prefix">購入レジ</MudNavLink>
-        <MudNavLink Href="/purchasehistory" Match="NavLinkMatch.Prefix">購入履歴</MudNavLink>
+        @if (userState.HasTenant)
+        {
+            <MudNavLink Href="/productmanage" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Inventory">商品管理</MudNavLink>
+            <MudNavLink Href="/register" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ShoppingCart">購入レジ</MudNavLink>
+            <MudNavLink Href="/purchasehistory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.History">購入履歴</MudNavLink>
+            <MudDivider Class="my-2" />
+        }
+        else
+        {
+            <MudNavLink OnClick="ShowTenantRequiredMessage" Icon="@Icons.Material.Filled.Inventory">商品管理</MudNavLink>
+            <MudNavLink OnClick="ShowTenantRequiredMessage" Icon="@Icons.Material.Filled.ShoppingCart">購入レジ</MudNavLink>
+            <MudNavLink OnClick="ShowTenantRequiredMessage" Icon="@Icons.Material.Filled.History">購入履歴</MudNavLink>
+            <MudDivider Class="my-2" />
+        }
+        <MudNavLink Href="/tenantmanage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Business">テナント管理</MudNavLink>
     }
-    <MudNavLink Href="/chat" Match="NavLinkMatch.Prefix">AIチャット</MudNavLink>
-    <MudNavLink Href="/lottery" Match="NavLinkMatch.Prefix">宝くじシミュレーター</MudNavLink>
-
+    <MudNavLink Href="/chat" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Chat">AIチャット</MudNavLink>
+    <MudNavLink Href="/lottery" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Casino">宝くじシミュレーター</MudNavLink>
 </MudNavMenu>
 
 @code {
     protected override void OnInitialized()
     {
         userState.OnStateChanged += StateHasChanged;
+    }
+
+    private void ShowTenantRequiredMessage()
+    {
+        Snackbar.Add("テナントを選択してください", Severity.Warning);
+        navigationManager.NavigateTo("/login");
     }
 
     public void Dispose()

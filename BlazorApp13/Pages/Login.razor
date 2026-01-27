@@ -2,8 +2,10 @@
 @page "/login"
 
 @using Infra.Repositories
+@using PurchaseWeb.Services
 @inject NavigationManager NavigationManager
 @inject UserState userState
+@inject ITenantRepository tenantRepository
 @inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center min-vh-100">
@@ -22,9 +24,35 @@
                     ログイン
                 </MudButton>
             }
-            else{
+            else if (!userState.HasTenant)
+            {
                 <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-                    ログイン成功
+                    テナントを選択してください
+                </MudText>
+                @if (tenants.Any())
+                {
+                    <MudSelect @bind-Value="selectedTenantId" Label="テナント" Variant="Variant.Outlined" Class="mb-4">
+                        @foreach (var tenant in tenants)
+                        {
+                            <MudSelectItem Value="@tenant.TenantId">@tenant.TenantName</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="SelectTenant" Class="mb-4" Disabled="@string.IsNullOrEmpty(selectedTenantId)">
+                        選択
+                    </MudButton>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">テナントが登録されていません</MudAlert>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToTenantManage" Class="mb-4">
+                        テナント管理へ
+                    </MudButton>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    ログイン成功（テナント: @userState.CurrentTenantName）
                 </MudText>
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToProductManage" Class="mb-4">商品管理</MudButton>
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToRegister" Class="mb-4">購入レジ</MudButton>
@@ -43,41 +71,106 @@
 </MudContainer>
 
 @code {
-    private string password { get; set; }
+    private string password = string.Empty;
+    private string? selectedTenantId;
+    private List<Infra.Persistance.Entities.Tenant> tenants = new();
+    private bool _initialized = false;
+
+    [Inject]
+    public required UserState UserState { get; set; }
+
+    [Inject]
+    public required ITenantProvider TenantProvider { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UserState.OnStateChanged += OnUserStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            // UserStateを初期化（ローカルストレージから読み込み）
+            await userState.InitializeAsync();
+
+            if (UserState.HasTenant && !string.IsNullOrEmpty(UserState.CurrentTenantId))
+            {
+                TenantProvider.SetTenantId(UserState.CurrentTenantId);
+            }
+
+            if (userState.IsStoreUser && !userState.HasTenant)
+            {
+                await LoadTenants();
+            }
+
+            _initialized = true;
+            StateHasChanged();
+        }
+    }
+
+    private async void OnUserStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadTenants()
+    {
+        tenants = await tenantRepository.GetActiveTenantsAsync();
+    }
 
     private async Task Logins()
     {
-        // ユーザーのパスワードを UserState にセット
-        userState.SetStoreUser(password);
-
-        // ログイン後の処理、例: チャットページに遷移や認証エラーメッセージ
-        // 本例ではシンプルにパスワードをクリア
+        await userState.SetStoreUserAsync(password);
         password = string.Empty;
+
+        if (userState.IsStoreUser)
+        {
+            await LoadTenants();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectTenant()
+    {
+        if (!string.IsNullOrEmpty(selectedTenantId))
+        {
+            var tenant = tenants.FirstOrDefault(t => t.TenantId == selectedTenantId);
+            if (tenant != null)
+            {
+                await userState.SetTenantAsync(tenant.TenantId, tenant.TenantName);
+                StateHasChanged();
+            }
+        }
     }
 
     private void NavigateToChat()
     {
-        // チャットページへの遷移
         NavigationManager.NavigateTo("/chat");
     }
 
     private void NavigateToProductManage()
     {
-        // 商品管理ページへの遷移
         NavigationManager.NavigateTo("/productmanage");
     }
 
     private void NavigateToRegister()
     {
-        // レジスターページへの遷移
         NavigationManager.NavigateTo("/register");
     }
 
     private void NavigateToPurchaseHistory()
     {
-        // 購入履歴への遷移
         NavigationManager.NavigateTo("/purchasehistory");
     }
 
+    private void NavigateToTenantManage()
+    {
+        NavigationManager.NavigateTo("/tenantmanage");
+    }
 
+    public void Dispose()
+    {
+        UserState.OnStateChanged -= OnUserStateChanged;
+    }
 }

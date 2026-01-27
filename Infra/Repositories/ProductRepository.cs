@@ -34,13 +34,20 @@ public interface IProductRepository
     public Task<Result<Product>> UpdateAsync(Product product);
 }
 
-public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : BaseRepository(dbFactory), IProductRepository
+public class ProductRepository : BaseRepository, IProductRepository
 {
+    public ProductRepository(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        ITenantProvider tenantProvider)
+        : base(dbFactory, tenantProvider)
+    {
+    }
+
     public async Task<List<Product>> GetActiveProducts()
     {
         return await ExecuteInContextAsync(context =>
             context.Product
-                .Where(x => !x.DeleteFlag)
+                .Where(x => x.TenantId == CurrentTenantId && !x.DeleteFlag)  // テナントフィルタ追加
                 .OrderBy(x => x.CreateDate)
                 .ToListAsync());
     }
@@ -50,9 +57,10 @@ public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory
         try
         {
             return await ExecuteInContextAsync(context =>
-            context.Product
-                .OrderBy(x => x.CreateDate)
-                .ToListAsync());
+                context.Product
+                    .Where(x => x.TenantId == CurrentTenantId)  // テナントフィルタ追加
+                    .OrderBy(x => x.CreateDate)
+                    .ToListAsync());
         }
         catch
         {
@@ -66,14 +74,18 @@ public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory
         {
             var result = await ExecuteInTransactionAsync(async context =>
             {
-                // 重複チェック
+                // テナントIDを設定
+                SetTenantId(product);
+
+                // 重複チェック（テナント内）
                 var exists = await context.Product
-                    .AnyAsync(p => p.ProductName == product.ProductName && !p.DeleteFlag);
+                    .AnyAsync(p => p.TenantId == CurrentTenantId
+                        && p.ProductName == product.ProductName
+                        && !p.DeleteFlag);
 
                 if (exists)
                     return Result<Product>.Failure("同じ名前の商品が既に存在します");
 
-                // 商品の追加
                 var entry = await context.Product.AddAsync(product);
                 await context.SaveChangesAsync();
 
@@ -94,14 +106,19 @@ public class ProductRepository(IDbContextFactory<ApplicationDbContext> dbFactory
         {
             var result = await ExecuteInTransactionAsync(async context =>
             {
-                // 重複チェック
+                // テナントIDを設定
+                SetTenantId(product);
+
+                // 重複チェック（テナント内）
                 var exists = await context.Product
-                    .AnyAsync(p => p.ProductName == product.ProductName && p.ProductId != product.ProductId && !p.DeleteFlag);
+                    .AnyAsync(p => p.TenantId == CurrentTenantId
+                        && p.ProductName == product.ProductName
+                        && p.ProductId != product.ProductId
+                        && !p.DeleteFlag);
 
                 if (exists)
                     return Result<Product>.Failure("同じ名前の商品が既に存在します");
 
-                // 商品の追加
                 var entry = context.Product.Update(product);
                 await context.SaveChangesAsync();
 

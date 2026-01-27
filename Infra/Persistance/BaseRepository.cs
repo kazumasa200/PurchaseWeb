@@ -1,4 +1,6 @@
 ﻿using Infra.Persistance.Context;
+using Infra.Persistance.Entities;
+using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Persistance;
@@ -7,13 +9,34 @@ namespace Infra.Persistance;
 /// リポジトリの基底クラス
 /// DbContextの生成と破棄を管理する
 /// </summary>
-/// <remarks>
-/// コンストラクタ
-/// </remarks>
-/// <param name="dbFactory">DbContextファクトリ</param>
-public abstract class BaseRepository(IDbContextFactory<ApplicationDbContext> dbFactory)
+public abstract class BaseRepository
 {
-    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory = dbFactory;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+    protected readonly ITenantProvider _tenantProvider;
+
+    protected BaseRepository(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        ITenantProvider tenantProvider)
+    {
+        _dbFactory = dbFactory;
+        _tenantProvider = tenantProvider;
+    }
+
+    /// <summary>
+    /// 現在のテナントIDを取得
+    /// </summary>
+    protected string CurrentTenantId
+    {
+        get
+        {
+            var tenantId = _tenantProvider.GetCurrentTenantId();
+            if (string.IsNullOrEmpty(tenantId))
+            {
+                throw new InvalidOperationException("Tenant ID is not set. Please select a tenant first.");
+            }
+            return tenantId;
+        }
+    }
 
     /// <summary>
     /// DbContextを使用して非同期操作を実行する
@@ -61,5 +84,13 @@ public abstract class BaseRepository(IDbContextFactory<ApplicationDbContext> dbF
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    /// <summary>
+    /// エンティティにテナントIDを設定する
+    /// </summary>
+    protected void SetTenantId(ITenantEntity entity)
+    {
+        entity.TenantId = CurrentTenantId;
     }
 }

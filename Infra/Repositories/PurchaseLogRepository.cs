@@ -28,13 +28,20 @@ public interface IPurchaseLogRepository
     public Task<Result<PurchaseLog>> DeleteAsync(PurchaseLog purchaseLog);
 }
 
-public class PurchaseLogRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : BaseRepository(dbFactory), IPurchaseLogRepository
+public class PurchaseLogRepository : BaseRepository, IPurchaseLogRepository
 {
+    public PurchaseLogRepository(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        ITenantProvider tenantProvider)
+        : base(dbFactory, tenantProvider)
+    {
+    }
+
     public async Task<List<PurchaseLog>> GetPurchaseLogsAsync()
     {
         return await ExecuteInContextAsync(context =>
             context.PurchaseLog
-            .Where(x => x.DeleteFlag == false)
+            .Where(x => x.TenantId == CurrentTenantId && !x.DeleteFlag)
             .OrderByDescending(x => x.PurchaseDate)
             .ToListAsync()
         );
@@ -48,13 +55,29 @@ public class PurchaseLogRepository(IDbContextFactory<ApplicationDbContext> dbFac
             {
                 foreach (var purchaseLog in purchaseLogs)
                 {
-                    // 重複チェック
+                    // テナントIDを設定
+                    SetTenantId(purchaseLog);
+
+                    // デバッグ用
+                    Console.WriteLine($"PurchaseLog TenantId after SetTenantId: {purchaseLog.TenantId}");
+                    Console.WriteLine($"CurrentTenantId from Provider: {CurrentTenantId}");
+
+                    // 重複チェック（テナント内）
                     var exists = await context.PurchaseLog
-                        .AnyAsync(p => p.LogId == purchaseLog.LogId && !p.DeleteFlag);
+                        .AnyAsync(p => p.TenantId == CurrentTenantId
+                            && p.LogId == purchaseLog.LogId
+                            && !p.DeleteFlag);
 
                     if (exists)
                         return Result<List<PurchaseLog>>.Failure("同じIDの記録が既に存在します");
                 }
+
+                // 挿入前に再度確認
+                foreach (var log in purchaseLogs)
+                {
+                    Console.WriteLine($"Inserting: LogId={log.LogId}, TenantId={log.TenantId}, ProductId={log.ProductId}");
+                }
+
                 // 商品の追加
                 await context.PurchaseLog.AddRangeAsync(purchaseLogs);
                 await context.SaveChangesAsync();
@@ -65,6 +88,7 @@ public class PurchaseLogRepository(IDbContextFactory<ApplicationDbContext> dbFac
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Error: {ex.Message}");
             return Result<List<PurchaseLog>>.Failure(ex.Message);
         }
     }

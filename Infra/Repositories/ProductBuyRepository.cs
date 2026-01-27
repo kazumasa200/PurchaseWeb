@@ -14,14 +14,21 @@ public interface IProductBuyRepository
     public Task<List<ProductBuy>> GetActiveProductBuy();
 }
 
-public class ProductBuyRepository(IDbContextFactory<ApplicationDbContext> dbFactory) : BaseRepository(dbFactory), IProductBuyRepository
+public class ProductBuyRepository : BaseRepository, IProductBuyRepository
 {
+    public ProductBuyRepository(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        ITenantProvider tenantProvider)
+        : base(dbFactory, tenantProvider)
+    {
+    }
+
     public async Task<List<ProductBuy>> GetActiveProductBuy()
     {
         return await ExecuteInContextAsync(async context =>
         {
             var products = await context.Product
-                .Where(x => !x.DeleteFlag)
+                .Where(x => x.TenantId == CurrentTenantId && !x.DeleteFlag)
                 .OrderBy(x => x.CreateDate)
                 .ToListAsync();
 

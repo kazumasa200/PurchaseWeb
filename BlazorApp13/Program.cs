@@ -3,27 +3,32 @@ using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using MudBlazor.Services;
+using PurchaseWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+builder.Services.AddServerSideBlazor();  // ← 元に戻す
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-options.UseNpgsql(builder.Configuration.GetConnectionString("db")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("db")));
 
 builder.Services.AddMudServices();
 builder.Services.AddMudMarkdownServices();
 
+// TenantProviderを登録
+builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+
 // リポジトリの登録
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
 builder.Services.AddScoped<LMStudioService>();
+
 // AppSettingsの構成を追加
-builder.Services.Configure<AppSettings>(
-    builder.Configuration);
+builder.Services.Configure<AppSettings>(builder.Configuration);
 
 // サービスを追加
 builder.Services.AddScoped<AppSettingsService>();
@@ -43,17 +48,14 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
 app.UseRouting();
 
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapBlazorHub();  // ← 元に戻す
+app.MapFallbackToPage("/_Host");  // ← 元に戻す
 
 app.Run();

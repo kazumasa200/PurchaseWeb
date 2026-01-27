@@ -1,9 +1,42 @@
 ﻿@page "/productmanage"
 @using Infra.Persistance.Entities
+@implements IDisposable
 
 <PageTitle>商品管理</PageTitle>
 
-@if (UserState.IsStoreUser)
+@if (IsLoading)
+{
+    <MudContainer Class="d-flex justify-center align-center" Style="min-height: 50vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </MudContainer>
+}
+else if (!UserState.IsStoreUser)
+{
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">
+                ログインしてください
+            </MudText>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToLogin">
+                ログイン
+            </MudButton>
+        </MudPaper>
+    </MudContainer>
+}
+else if (!UserState.HasTenant)
+{
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">
+                テナントを選択してください
+            </MudText>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToLogin">
+                テナント選択
+            </MudButton>
+        </MudPaper>
+    </MudContainer>
+}
+else
 {
     <h1>商品管理</h1>
 
@@ -37,13 +70,4 @@
         </MudExpansionPanels>
     
     </MudStack>
-}
-else
-{
-    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-        ログインしてください
-    </MudText>
-    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToLogin" Class="mb-4">
-        ログイン
-    </MudButton>
 }

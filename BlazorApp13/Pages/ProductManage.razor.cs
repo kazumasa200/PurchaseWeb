@@ -2,10 +2,11 @@
 using Infra.Repositories;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using PurchaseWeb.Services;
 
 namespace PurchaseWeb.Pages;
 
-public partial class ProductManage
+public partial class ProductManage : IDisposable
 {
     [Inject]
     public required IProductRepository ProductRepository { get; set; }
@@ -13,64 +14,93 @@ public partial class ProductManage
     [Inject]
     public required UserState UserState { get; set; }
 
-    public string NewProdMisc { get; set; } = string.Empty;
-
-    public string NewProdName { get; set; } = string.Empty;
-
-    public int NewProdPrice { get; set; }
-
     [Inject]
     public required ISnackbar Snackbar { get; set; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
-    /// <summary>
-    /// 　商品のリスト
-    /// </summary>
+    [Inject]
+    public required ITenantProvider TenantProvider { get; set; }
+
+    public string NewProdMisc { get; set; } = string.Empty;
+    public string NewProdName { get; set; } = string.Empty;
+    public int NewProdPrice { get; set; }
+
     public List<Product> Products { get; set; } = [];
+    private bool _initialized = false;
+    private bool _isLoading = true;
 
-    /// <summary>
-    /// 製品削除
-    /// </summary>
-    /// <param name="product"></param>
-    public async Task DeleteProduct(Product product)
+    public bool IsLoading => _isLoading;
+
+    protected override void OnInitialized()
     {
-        var updated = Product.Delete(product);
-        var ret = await ProductRepository.UpdateAsync(updated);
-        if (ret != null && ret.IsSuccess)
-        {
-            Snackbar.Add("更新成功", Severity.Success);
-            ResetForm();
-        }
-        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
-        {
-            Snackbar.Add(ret.ErrorMessage, Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("更新失敗", Severity.Error);
-        }
-        await GetProducts();
-        StateHasChanged();
+        UserState.OnStateChanged += OnUserStateChanged;
     }
 
-    public async Task GetProducts()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Products = await ProductRepository.GetActiveProducts();
+        if (firstRender && !_initialized)
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            // 初期化待機
+            await Task.Delay(100);
+
+            if (!UserState.IsStoreUser || !UserState.HasTenant)
+            {
+                _isLoading = false;
+                _initialized = true;
+                StateHasChanged();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(UserState.CurrentTenantId))
+            {
+                TenantProvider.SetTenantId(UserState.CurrentTenantId);
+                await LoadProducts();
+            }
+
+            _isLoading = false;
+            _initialized = true;
+            StateHasChanged();
+        }
     }
 
-    /// <summary>
-    /// 製品追加
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="price"></param>
-    /// <param name="misc"></param>
+    private async void OnUserStateChanged()
+    {
+        _isLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        if (UserState.HasTenant && !string.IsNullOrEmpty(UserState.CurrentTenantId))
+        {
+            TenantProvider.SetTenantId(UserState.CurrentTenantId);
+            await LoadProducts();
+        }
+
+        _isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            Products = await ProductRepository.GetActiveProducts();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+            Products = [];
+        }
+    }
+
     public async Task InsertProduct(string name, int price, string? misc)
     {
         var prod = Product.Create(null, name, price, misc);
-
         var ret = await ProductRepository.AddAsync(prod);
+
         if (ret != null && ret.IsSuccess)
         {
             Snackbar.Add("追加成功", Severity.Success);
@@ -84,28 +114,15 @@ public partial class ProductManage
         {
             Snackbar.Add("追加失敗", Severity.Error);
         }
-        await GetProducts();
+        await LoadProducts();
         StateHasChanged();
     }
 
-    /// <summary>
-    /// 新規追加のところをリセット
-    /// </summary>
-    public void ResetForm()
-    {
-        NewProdMisc = string.Empty;
-        NewProdName = string.Empty;
-        NewProdPrice = 0;
-    }
-
-    /// <summary>
-    /// 製品更新
-    /// </summary>
-    /// <param name="product"></param>
     public async Task UpdateProduct(Product product)
     {
         var updated = Product.Update(product);
         var ret = await ProductRepository.UpdateAsync(updated);
+
         if (ret != null && ret.IsSuccess)
         {
             Snackbar.Add("更新成功", Severity.Success);
@@ -119,17 +136,46 @@ public partial class ProductManage
         {
             Snackbar.Add("更新失敗", Severity.Error);
         }
-        await GetProducts();
+        await LoadProducts();
         StateHasChanged();
     }
 
-    protected override async Task OnInitializedAsync()
+    public async Task DeleteProduct(Product product)
     {
-        await GetProducts();
+        var updated = Product.Delete(product);
+        var ret = await ProductRepository.UpdateAsync(updated);
+
+        if (ret != null && ret.IsSuccess)
+        {
+            Snackbar.Add("更新成功", Severity.Success);
+            ResetForm();
+        }
+        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
+        {
+            Snackbar.Add(ret.ErrorMessage, Severity.Error);
+        }
+        else
+        {
+            Snackbar.Add("更新失敗", Severity.Error);
+        }
+        await LoadProducts();
+        StateHasChanged();
+    }
+
+    public void ResetForm()
+    {
+        NewProdMisc = string.Empty;
+        NewProdName = string.Empty;
+        NewProdPrice = 0;
     }
 
     private void NavigateToLogin()
     {
         NavigationManager.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        UserState.OnStateChanged -= OnUserStateChanged;
     }
 }

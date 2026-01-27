@@ -45,5 +45,15 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(e => e.DeleteFlag)
             .HasColumnName("delete_flag")
             .IsRequired();
+
+        builder.Property(x => x.TenantId)
+            .HasColumnName("tenant_id")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.HasOne(x => x.Tenant)
+            .WithMany()
+            .HasForeignKey(x => x.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

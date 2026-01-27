@@ -1,5 +1,4 @@
-﻿using Infra.Persistance.Configuration;
-using Infra.Persistance.Entities;
+﻿using Infra.Persistance.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Persistance.Context;
@@ -12,15 +11,15 @@ public class ApplicationDbContext : DbContext
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
     }
 
+    public DbSet<Tenant> Tenant { get; set; }
     public DbSet<Product> Product { get; set; }
-
     public DbSet<PurchaseLog> PurchaseLog { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.ApplyConfiguration(new ProductConfiguration());
-        modelBuilder.ApplyConfiguration(new PurchaseLogConfiguration());
+        // すべてのConfigurationを自動適用
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }
