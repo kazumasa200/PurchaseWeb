@@ -188,5 +188,4 @@ public class ProductRepository : BaseRepository, IProductRepository
             return Result<Product>.Failure($"在庫更新エラー: {ex.Message}");
         }
     }
-
 }

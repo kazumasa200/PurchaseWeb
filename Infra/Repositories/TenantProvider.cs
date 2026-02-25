@@ -3,7 +3,9 @@
 public interface ITenantProvider
 {
     string? GetCurrentTenantId();
+
     void SetTenantId(string tenantId);
+
     bool HasTenantId();  // 追加
 }
 

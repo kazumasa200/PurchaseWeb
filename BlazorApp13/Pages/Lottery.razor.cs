@@ -40,6 +40,7 @@ public partial class Lottery
 
     // 最適化のための一時変数
     private long _lastUpdateCount = 0;
+
     private Stopwatch _speedStopwatch = new Stopwatch();
 
     protected override void OnInitialized()
@@ -260,7 +261,8 @@ public partial class Lottery
 
             // 表示用の当選履歴を更新
             _tableLoading = true;
-            await InvokeAsync(() => {
+            await InvokeAsync(() =>
+            {
                 _displayWinHistory = _winHistory.OrderByDescending(w => w.PurchaseCount).Take(1000).ToList();
                 _tableLoading = false;
                 StateHasChanged();

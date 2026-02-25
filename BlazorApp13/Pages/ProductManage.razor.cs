@@ -1,7 +1,6 @@
 ﻿using Infra.Persistance.Entities;
 using Infra.Repositories;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using PurchaseWeb.Component;
 using PurchaseWeb.Services;
@@ -39,6 +38,7 @@ public partial class ProductManage : IDisposable
 
     // 検索用
     public string SearchText { get; set; } = string.Empty;
+
     public List<Product> FilteredProducts => Products
         .Where(p => p.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
         .ToList();
