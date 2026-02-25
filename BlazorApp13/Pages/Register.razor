@@ -42,6 +42,21 @@ else
 {
     
     <h1>購入レジ</h1>
+    <div class="d-flex gap-2 mb-3">
+        <!-- 既存の事前注文用QRボタン -->
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.QrCode2"
+                   OnClick="ShowPreOrderQr">
+            事前注文用QRを表示
+        </MudButton>
+
+        <!-- 追加：QR読み取りボタン -->
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.QrCodeScanner"
+                   OnClick="OpenQrScanner">
+            QRコードを読み取る
+        </MudButton>
+    </div>
     <MudDataGrid  Items="@Products" ReadOnly="true"
                  Bordered="true" Dense="true" >
         <Columns>
@@ -88,4 +103,12 @@ else
         <MudText Typo="Typo.h4" Class="d-flex jusify-end">おつり : @(Received - Products.Sum(x => x.Sum)) 円</MudText>
         <MudButton Color="Color.Primary" OnClick="@Purchase" Variant="Variant.Filled">購買情報登録</MudButton>
     </MudPaper>
+
+    <!-- 追加：事前注文用QRボタン -->
+    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+               StartIcon="@Icons.Material.Filled.QrCode2"
+               OnClick="ShowPreOrderQr"
+               Class="mb-3">
+        事前注文用QRを表示
+    </MudButton>
 }

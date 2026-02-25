@@ -72,7 +72,7 @@ public partial class Chat
 
         try
         {
-            await foreach (var chunk in LMStudioService.StreamMessagesAsync(selectedModel, chatMessages ,_scrollToBottomContext))
+            await foreach (var chunk in LMStudioService.StreamMessagesAsync(selectedModel, chatMessages, _scrollToBottomContext))
             {
                 responseBuilder.Append(chunk);
                 assistantMessage.Content = responseBuilder.ToString();

@@ -3,6 +3,7 @@ using Infra.Repositories;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
+using PurchaseWeb.Component;
 using PurchaseWeb.Services;
 
 namespace PurchaseWeb.Pages;
@@ -24,14 +25,23 @@ public partial class ProductManage : IDisposable
     [Inject]
     public required ITenantProvider TenantProvider { get; set; }
 
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    // 削除確認ダイアログ用
+    private Product? DeleteProductItem { get; set; }
+
     public string NewProdMisc { get; set; } = string.Empty;
     public string NewProdName { get; set; } = string.Empty;
     public int NewProdPrice { get; set; }
     public int? NewProdStock { get; set; }
     public string? NewProdImageBase64 { get; set; }
-    public string? EditingProductId { get; set; }
-    public bool IsEditing => !string.IsNullOrEmpty(EditingProductId);
-    public bool IsFormExpanded { get; set; } = false;
+
+    // 検索用
+    public string SearchText { get; set; } = string.Empty;
+    public List<Product> FilteredProducts => Products
+        .Where(p => p.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+        .ToList();
 
     public List<Product> Products { get; set; } = [];
     private bool _initialized = false;
@@ -102,81 +112,90 @@ public partial class ProductManage : IDisposable
         }
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    // 新規作成ダイアログを開く
+    private async Task OpenCreateDialog()
     {
-        var file = e.File;
-        if (file != null)
+        var parameters = new DialogParameters
         {
-            // 最大 5MB
-            var maxFileSize = 5 * 1024 * 1024;
+            { nameof(ProductEditDialog.IsNew), true }
+        };
 
-            if (file.Size > maxFileSize)
-            {
-                Snackbar.Add("ファイルサイズは 5MB 以下にしてください", Severity.Error);
-                return;
-            }
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
 
-            try
-            {
-                // Base64 エンコードして保存
-                using var memoryStream = new MemoryStream();
-                await file.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
-                NewProdImageBase64 = Convert.ToBase64String(memoryStream.ToArray());
+        var dialog = await DialogService.ShowAsync<ProductEditDialog>("新規商品登録", parameters, options);
+        var result = await dialog.Result;
 
-                Snackbar.Add("画像をアップロードしました", Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"画像アップロードエラー：{ex.Message}", Severity.Error);
-                NewProdImageBase64 = null;
-            }
+        // ダイアログ内で DB 操作が完了しているので、リストを再読み込みするだけ
+        if (result is DialogResult { Data: bool success } && success)
+        {
+            await LoadProducts();
+            StateHasChanged();
         }
     }
 
-    private void ClearImage()
+    // 編集ダイアログを開く
+    private async Task OpenEditDialog(Product product)
     {
-        NewProdImageBase64 = null;
-    }
-
-    private void EditProduct(Product product)
-    {
-        EditingProductId = product.ProductId;
-        NewProdName = product.ProductName;
-        NewProdPrice = product.Price;
-        NewProdStock = product.StockQuantity;
-        NewProdMisc = product.Misc ?? string.Empty;
-        NewProdImageBase64 = product.ImageBase64;
-        IsFormExpanded = true;
-        StateHasChanged();
-    }
-
-    private void CancelEdit()
-    {
-        ResetForm();
-    }
-
-    private async Task SaveProduct()
-    {
-        if (IsEditing)
+        var parameters = new DialogParameters
         {
-            await UpdateExistingProduct();
-        }
-        else
+            { nameof(ProductEditDialog.IsNew), false },
+            { nameof(ProductEditDialog.Product), product }
+        };
+
+        var options = new DialogOptions
         {
-            await InsertProduct(NewProdName, NewProdPrice, NewProdMisc, NewProdImageBase64, NewProdStock);
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductEditDialog>("商品編集", parameters, options);
+        var result = await dialog.Result;
+
+        // ダイアログ内で DB 操作が完了しているので、リストを再読み込みするだけ
+        if (result is DialogResult { Data: bool success } && success)
+        {
+            await LoadProducts();
+            StateHasChanged();
         }
     }
 
-    public async Task InsertProduct(string name, int price, string? misc, string? imageBase64, int? stockQuantity)
+    // 削除確認ダイアログを開く
+    private async Task ConfirmDelete(Product product)
     {
-        var prod = Product.Create(null, name, price, misc, imageBase64, stockQuantity);
-        var ret = await ProductRepository.AddAsync(prod);
+        var parameters = new DialogParameters
+        {
+            { nameof(Product), product }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("商品削除の確認", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is DialogResult { Data: bool confirm } && confirm)
+        {
+            await DeleteProduct(product);
+        }
+    }
+
+    public async Task InsertProduct(Product product)
+    {
+        var ret = await ProductRepository.AddAsync(product);
 
         if (ret != null && ret.IsSuccess)
         {
             Snackbar.Add("追加成功", Severity.Success);
-            ResetForm();
         }
         else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
         {
@@ -190,49 +209,6 @@ public partial class ProductManage : IDisposable
         StateHasChanged();
     }
 
-    private async Task UpdateExistingProduct()
-    {
-        var existingProduct = Products.FirstOrDefault(p => p.ProductId == EditingProductId);
-        if (existingProduct == null)
-        {
-            Snackbar.Add("商品が見つかりません", Severity.Error);
-            return;
-        }
-
-        // 一時的に public setter でプロパティを更新（後でドメインモデルを拡張可能）
-        var updatedProduct = Product.Create(
-            existingProduct.ProductId,
-            NewProdName,
-            NewProdPrice,
-            NewProdMisc,
-            NewProdImageBase64,
-            NewProdStock
-        );
-
-        // CreateDate を維持
-        typeof(Product).GetProperty("CreateDate")!.SetValue(updatedProduct, existingProduct.CreateDate);
-        typeof(Product).GetProperty("DeleteFlag")!.SetValue(updatedProduct, existingProduct.DeleteFlag);
-
-        var finalProduct = Product.Update(updatedProduct);
-        var ret = await ProductRepository.UpdateAsync(finalProduct);
-
-        if (ret != null && ret.IsSuccess)
-        {
-            Snackbar.Add("更新成功", Severity.Success);
-            ResetForm();
-        }
-        else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
-        {
-            Snackbar.Add(ret.ErrorMessage, Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("更新失敗", Severity.Error);
-        }
-        await LoadProducts();
-        StateHasChanged();
-    }
-
     public async Task UpdateProduct(Product product)
     {
         var updated = Product.Update(product);
@@ -241,7 +217,6 @@ public partial class ProductManage : IDisposable
         if (ret != null && ret.IsSuccess)
         {
             Snackbar.Add("更新成功", Severity.Success);
-            ResetForm();
         }
         else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
         {
@@ -263,7 +238,6 @@ public partial class ProductManage : IDisposable
         if (ret != null && ret.IsSuccess)
         {
             Snackbar.Add("削除成功", Severity.Success);
-            ResetForm();
         }
         else if (ret != null && !string.IsNullOrWhiteSpace(ret.ErrorMessage))
         {
@@ -275,17 +249,6 @@ public partial class ProductManage : IDisposable
         }
         await LoadProducts();
         StateHasChanged();
-    }
-
-    public void ResetForm()
-    {
-        NewProdMisc = string.Empty;
-        NewProdName = string.Empty;
-        NewProdPrice = 0;
-        NewProdStock = null;
-        NewProdImageBase64 = null;
-        EditingProductId = null;
-        IsFormExpanded = false;
     }
 
     private string GetStockText(int? stock)

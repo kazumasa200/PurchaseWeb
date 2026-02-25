@@ -162,16 +162,14 @@ public class ProductRepository : BaseRepository, IProductRepository
             var result = await ExecuteInTransactionAsync(async context =>
             {
                 var product = await context.Product
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.ProductId == productId
                         && p.TenantId == CurrentTenantId
                         && !p.DeleteFlag);
 
                 if (product == null)
-                {
                     return Result<Product>.Failure("商品が見つかりません");
-                }
 
-                // 在庫管理している場合のみ減算
                 if (product.StockQuantity.HasValue)
                 {
                     var updated = Product.ReduceStock(product, quantity);
@@ -180,7 +178,6 @@ public class ProductRepository : BaseRepository, IProductRepository
                     return Result<Product>.Success(updated);
                 }
 
-                // 在庫管理なしの場合は変更なし
                 return Result<Product>.Success(product);
             });
 
@@ -191,4 +188,5 @@ public class ProductRepository : BaseRepository, IProductRepository
             return Result<Product>.Failure($"在庫更新エラー: {ex.Message}");
         }
     }
+
 }

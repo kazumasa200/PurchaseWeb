@@ -108,6 +108,7 @@ public class Product : ITenantEntity
 
         return new Product
         {
+            TenantId = product.TenantId,
             ProductId = product.ProductId,
             ProductName = product.ProductName,
             Price = product.Price,
@@ -131,6 +132,7 @@ public class Product : ITenantEntity
 
             return new Product
             {
+                TenantId = product.TenantId,
                 ProductId = product.ProductId,
                 ProductName = product.ProductName,
                 Price = product.Price,
@@ -154,6 +156,7 @@ public class Product : ITenantEntity
     {
         return new Product
         {
+            TenantId = original.TenantId,
             ProductId = original.ProductId,
             ProductName = original.ProductName,
             Price = original.Price,
