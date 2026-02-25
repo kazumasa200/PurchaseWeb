@@ -9,25 +9,28 @@ namespace PurchaseWeb.Pages;
 
 public partial class Register : IDisposable
 {
-    public required ApplicationDbContext DbFactory { get; set; }
+    public ApplicationDbContext DbFactory { get; set; }
 
     [Inject]
-    public required IProductBuyRepository ProductBuyRepository { get; set; }
+    public IProductBuyRepository ProductBuyRepository { get; set; }
 
     [Inject]
-    public required IPurchaseLogRepository PurchaseLogRepository { get; set; }
+    public IPurchaseLogRepository PurchaseLogRepository { get; set; }
 
     [Inject]
-    public required ITenantProvider TenantProvider { get; set; }
+    public IProductRepository ProductRepository { get; set; }  // 追加
 
     [Inject]
-    public required ISnackbar Snackbar { get; set; }
+    public ITenantProvider TenantProvider { get; set; }
 
     [Inject]
-    public required UserState UserState { get; set; }
+    public ISnackbar Snackbar { get; set; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public UserState UserState { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
 
     public List<ProductBuy> Products { get; set; } = [];
     public int Received { get; set; }
@@ -121,6 +124,24 @@ public partial class Register : IDisposable
             var ret = await PurchaseLogRepository.AddRangeAsync(data);
             if (ret != null && ret.IsSuccess)
             {
+                // 購入成功後、在庫を減らす
+                foreach (var product in Products)
+                {
+                    if (product.Amount > 0)
+                    {
+                        var stockResult = await ProductRepository.ReduceStockAsync(
+                            product.Product.ProductId,
+                            product.Amount
+                        );
+
+                        // 在庫更新失敗はログのみ（会計は成功扱い）
+                        if (!stockResult.IsSuccess)
+                        {
+                            Console.WriteLine($"在庫更新失敗: {stockResult.ErrorMessage}");
+                        }
+                    }
+                }
+
                 Snackbar.Add("お買い上げありがとうございます！", Severity.Success);
                 Received = 0;
             }

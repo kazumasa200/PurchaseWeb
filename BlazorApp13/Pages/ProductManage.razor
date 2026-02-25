@@ -1,5 +1,6 @@
 ﻿@page "/productmanage"
 @using Infra.Persistance.Entities
+@using Microsoft.AspNetCore.Components.Forms
 @implements IDisposable
 
 <PageTitle>商品管理</PageTitle>
@@ -41,33 +42,114 @@ else
     <h1>商品管理</h1>
 
     <MudStack>
-        <MudDataGrid T="Product" Items="@Products"  EditMode="DataGridEditMode.Form" ReadOnly="false"
+        <MudDataGrid T="Product" Items="@Products" EditMode="DataGridEditMode.Form" ReadOnly="false"
                      Bordered="true" EditTrigger="DataGridEditTrigger.Manual" CommittedItemChanges="UpdateProduct">
             <Columns>
+                <TemplateColumn Title="画像">
+                    <CellTemplate>
+                        @if (!string.IsNullOrEmpty(context.Item.ImageBase64))
+                        {
+                            <MudImage Src="@($"data:image/png;base64,{context.Item.ImageBase64}")"
+                                      Alt="@context.Item.ProductName"
+                                      Height="50"
+                                      Width="50"
+                                      ObjectFit="ObjectFit.Cover"
+                                      Class="rounded" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" />
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
                 <PropertyColumn Property="x => x.ProductName" Title="商品名" />
                 <PropertyColumn Property="x => x.Price" Title="価格" />
+                <TemplateColumn Title="在庫">
+                    <CellTemplate>
+                        <MudText Color="@GetStockColor(context.Item.StockQuantity)">
+                            @GetStockText(context.Item.StockQuantity)
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
                 <PropertyColumn Property="x => x.Misc" Title="その他備考" />
                 <TemplateColumn CellClass="d-flex justify-end">
                     <CellTemplate>
-                        @* <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" /> *@
-                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(x => DeleteProduct(context.Item))" />
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => EditProduct(context.Item))" />
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteProduct(context.Item))" />
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
         </MudDataGrid>
-        
-        
+
+
         <MudDivider DividerType="DividerType.Middle" />
-        
+
         <MudExpansionPanels>
-            <MudExpansionPanel Text="新規追加">
+            <MudExpansionPanel Text="@(IsEditing ? "商品編集" : "新規追加")" IsExpanded="@IsFormExpanded">
                 <MudTextField @bind-Value="NewProdName" Label="名前" Variant="Variant.Outlined"></MudTextField>
-                <MudNumericField @bind-Value="NewProdPrice" Min="0" Immediate="true" Label="価格" Variant="Variant.Outlined" Class="d-flex jusify-end" />
-                <MudTextField @bind-Value="NewProdMisc" Label="その他備考" Variant="Variant.Outlined"></MudTextField>
-                
-                <MudButton Color="Color.Primary" OnClick="@(x => InsertProduct(NewProdName,NewProdPrice,NewProdMisc))" Variant="Variant.Filled">登録</MudButton>
+                <MudNumericField @bind-Value="NewProdPrice" Min="0" Immediate="true" Label="価格" Variant="Variant.Outlined" Class="mt-3" />
+                <MudNumericField @bind-Value="NewProdStock"
+                                 Min="0"
+                                 Immediate="true"
+                                 Label="在庫数（空白=無制限）"
+                                 Variant="Variant.Outlined"
+                                 Clearable="true"
+                                 Class="mt-3" />
+                <MudText Typo="Typo.caption" Class="mb-3">
+                    ※在庫数を空欄にすると無制限として扱われます
+                </MudText>
+                <MudTextField @bind-Value="NewProdMisc" Label="その他備考" Variant="Variant.Outlined" Class="mt-3"></MudTextField>
+
+                <!-- 画像アップロード（InputFile直接使用） -->
+                <MudPaper Class="pa-3 mt-3" Outlined="true">
+                    <MudText Typo="Typo.body2" Class="mb-2">商品画像</MudText>
+                    <InputFile id="fileInput" OnChange="OnFileSelected" accept="image/*" hidden />
+                    <MudButton HtmlTag="label"
+                               for="fileInput"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.CloudUpload">
+                        画像を選択
+                    </MudButton>
+                    <MudText Typo="Typo.caption" Class="mt-2">最大5MB</MudText>
+                </MudPaper>
+
+                @if (!string.IsNullOrEmpty(NewProdImageBase64))
+                {
+                    <MudCard Class="mt-3">
+                        <MudCardContent>
+                            <MudImage Src="@($"data:image;base64,{NewProdImageBase64}")"
+                                      Alt="商品画像"
+                                      Height="200"
+                                      ObjectFit="ObjectFit.Contain" />
+                            <MudButton OnClick="ClearImage"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       Class="mt-2">
+                                画像を削除
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                }
+
+                <MudStack Row="true" Class="mt-4">
+                    <MudButton Color="Color.Primary"
+                               OnClick="SaveProduct"
+                               Variant="Variant.Filled">
+                        @(IsEditing ? "更新" : "登録")
+                    </MudButton>
+
+                    @if (IsEditing)
+                    {
+                        <MudButton Color="Color.Default"
+                                   OnClick="CancelEdit"
+                                   Variant="Variant.Outlined">
+                            キャンセル
+                        </MudButton>
+                    }
+                </MudStack>
             </MudExpansionPanel>
         </MudExpansionPanels>
-    
+
     </MudStack>
 }

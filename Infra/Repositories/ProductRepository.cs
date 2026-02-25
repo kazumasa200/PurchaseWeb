@@ -32,6 +32,16 @@ public interface IProductRepository
     /// <param name="product">追加する商品</param>
     /// <returns>処理結果</returns>
     public Task<Result<Product>> UpdateAsync(Product product);
+
+    /// <summary>
+    /// 商品IDで取得
+    /// </summary>
+    public Task<Product?> GetByIdAsync(string productId);
+
+    /// <summary>
+    /// 在庫を減らす
+    /// </summary>
+    public Task<Result<Product>> ReduceStockAsync(string productId, int quantity);
 }
 
 public class ProductRepository : BaseRepository, IProductRepository
@@ -66,6 +76,15 @@ public class ProductRepository : BaseRepository, IProductRepository
         {
             return [];
         }
+    }
+
+    public async Task<Product?> GetByIdAsync(string productId)
+    {
+        return await ExecuteInContextAsync(context =>
+            context.Product
+                .FirstOrDefaultAsync(p => p.ProductId == productId
+                    && p.TenantId == CurrentTenantId
+                    && !p.DeleteFlag));
     }
 
     public async Task<Result<Product>> AddAsync(Product product)
@@ -130,6 +149,46 @@ public class ProductRepository : BaseRepository, IProductRepository
         catch (Exception ex)
         {
             return Result<Product>.Failure(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// 在庫を減らす
+    /// </summary>
+    public async Task<Result<Product>> ReduceStockAsync(string productId, int quantity)
+    {
+        try
+        {
+            var result = await ExecuteInTransactionAsync(async context =>
+            {
+                var product = await context.Product
+                    .FirstOrDefaultAsync(p => p.ProductId == productId
+                        && p.TenantId == CurrentTenantId
+                        && !p.DeleteFlag);
+
+                if (product == null)
+                {
+                    return Result<Product>.Failure("商品が見つかりません");
+                }
+
+                // 在庫管理している場合のみ減算
+                if (product.StockQuantity.HasValue)
+                {
+                    var updated = Product.ReduceStock(product, quantity);
+                    context.Product.Update(updated);
+                    await context.SaveChangesAsync();
+                    return Result<Product>.Success(updated);
+                }
+
+                // 在庫管理なしの場合は変更なし
+                return Result<Product>.Success(product);
+            });
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return Result<Product>.Failure($"在庫更新エラー: {ex.Message}");
         }
     }
 }

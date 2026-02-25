@@ -45,6 +45,23 @@ else
     <MudDataGrid  Items="@Products" ReadOnly="true"
                  Bordered="true" Dense="true" >
         <Columns>
+            <TemplateColumn Title="画像">
+                <CellTemplate>
+                    @if (!string.IsNullOrEmpty(context.Item.Product.ImageBase64))
+                    {
+                        <MudImage Src="@($"data:image;base64,{context.Item.Product.ImageBase64}")"
+                                  Alt="@context.Item.Product.ProductName"
+                                  Height="50"
+                                  Width="50"
+                                  ObjectFit="ObjectFit.Cover"
+                                  Class="rounded" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Medium" Color="Color.Default" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
             <PropertyColumn Property="x => x.Product.ProductName" Title="商品名" />
             <PropertyColumn Property="x => x.Product.Price" Title="価格" />
             <PropertyColumn Property="x => x.Product.Misc" Title="その他備考" />
