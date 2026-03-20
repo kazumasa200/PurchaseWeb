@@ -43,8 +43,8 @@ public class ProductUsecase : IProductUsecase
         var ret = await _productRepo.UpdateAsync(product);
         if (!ret.IsSuccess) return ret;
 
-        if (imageBase64 != null)
-            await _productRepo.SaveImageAsync(product.ProductId, imageBase64);
+        // null → 既存画像を削除（SaveImageAsync 内で no-op）、非null → 保存/更新
+        await _productRepo.SaveImageAsync(product.ProductId, imageBase64);
 
         return ret;
     }

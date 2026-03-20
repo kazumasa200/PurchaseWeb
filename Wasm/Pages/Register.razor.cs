@@ -144,32 +144,33 @@ public partial class Register : IDisposable
 
     private async Task LoadImagesAsync()
     {
-        try
+        var productIds = Products.Select(p => p.Product.ProductId).ToList();
+        foreach (var id in productIds)
         {
-            var allImages = await RegisterUsecase.GetAllProductImagesAsync();
-            foreach (var (productId, base64) in allImages)
+            try
             {
-                _productImages[productId] = base64;
-                _productImageSrcs[productId] = base64 is null ? null : $"data:image;base64,{base64}";
-                ImageCache.Set(productId, base64);
-                _imageLoadComplete.Add(productId);
-            }
-            foreach (var item in Products)
-            {
-                var id = item.Product.ProductId;
-                if (!_imageLoadComplete.Contains(id) && ImageCache.TryGet(id, out var cached))
+                string? base64;
+                if (ImageCache.TryGet(id, out var cached))
                 {
-                    _productImages[id] = cached;
-                    _productImageSrcs[id] = cached is null ? null : $"data:image;base64,{cached}";
-                    _imageLoadComplete.Add(id);
+                    base64 = cached;
                 }
+                else
+                {
+                    base64 = await RegisterUsecase.GetProductImageAsync(id);
+                    ImageCache.Set(id, base64);
+                }
+                _productImages[id] = base64;
+                _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
             }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"LoadImagesAsync [{id}] error: {ex.Message}");
+                _productImages[id] = null;
+                _productImageSrcs[id] = null;
+            }
+            _imageLoadComplete.Add(id);
+            await InvokeAsync(StateHasChanged);
         }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"LoadImagesAsync error: {ex.Message}");
-        }
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ShowPreOrderQr()
@@ -300,6 +301,22 @@ public partial class Register : IDisposable
             Snackbar.Add("購入情報を入力してください。");
         }
     }
+
+    private static string GetStockText(int? stock) => stock switch
+    {
+        null    => "在庫：無制限",
+        0       => "在庫なし",
+        <= 5    => $"残り {stock} 個",
+        _       => $"在庫：{stock} 個"
+    };
+
+    private static Color GetStockColor(int? stock) => stock switch
+    {
+        null => Color.Default,
+        0    => Color.Error,
+        <= 5 => Color.Warning,
+        _    => Color.Success
+    };
 
     private void NavigateToLogin() => NavigationManager.NavigateTo("/login");
 

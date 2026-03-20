@@ -8,15 +8,13 @@ public class ProductManageUsecase : IProductManageUsecase
     private readonly IProductRepository _productRepo;
 
     public ProductManageUsecase(IProductRepository productRepo)
-    {
-        _productRepo = productRepo;
-    }
+        => _productRepo = productRepo;
 
     public Task<List<Product>> GetProductsAsync()
         => _productRepo.GetActiveProductsWithoutImages();
 
-    public Task<Dictionary<string, string?>> GetAllProductImagesAsync()
-        => _productRepo.GetAllProductImagesAsync();
+    public Task<string?> GetProductImageAsync(string productId)
+        => _productRepo.GetProductImageAsync(productId);
 
     public Task<Result<Product>> CreateProductAsync(Product product)
         => _productRepo.AddAsync(product);

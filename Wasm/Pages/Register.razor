@@ -69,6 +69,10 @@ else
                     <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
                         ¥@item.Product.Price
                     </MudText>
+                    <MudText Typo="Typo.caption" Align="Align.Center"
+                             Color="@GetStockColor(item.Product.StockQuantity)">
+                        @GetStockText(item.Product.StockQuantity)
+                    </MudText>
 
                     <div class="d-flex align-center justify-center mt-1" style="gap:4px;">
                         <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"

@@ -1,4 +1,4 @@
-@using PurchaseWeb.Wasm.Repositories
+@using PurchaseWeb.Wasm.Services
 @inherits MudComponentBase
 
 <MudDialog>
@@ -14,7 +14,7 @@
                      alt="事前注文QR"
                      style="width: 220px; height: 220px;" />
             }
-            else if (_isLoading)
+            else
             {
                 <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             }
@@ -38,31 +38,22 @@
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Inject]
-    private IQrRepository QrRepository { get; set; } = default!;
+    private QrCodeService QrService { get; set; } = default!;
 
     private string? QrCodeBase64 { get; set; }
-    private bool _isLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await GenerateQr();
-    }
-
-    private async Task GenerateQr()
-    {
-        if (string.IsNullOrEmpty(PreOrderUrl)) return;
-
-        try
+        if (!string.IsNullOrEmpty(PreOrderUrl))
         {
-            QrCodeBase64 = await QrRepository.GenerateUrlQrAsync(PreOrderUrl);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"QR生成エラー: {ex.Message}");
-        }
-        finally
-        {
-            _isLoading = false;
+            try
+            {
+                QrCodeBase64 = QrService.GenerateQrBase64(PreOrderUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"QR生成エラー: {ex.Message}");
+            }
         }
     }
 }

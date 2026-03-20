@@ -4,6 +4,8 @@ using PurchaseWeb.Client.Models;
 using PurchaseWeb.Wasm.Repositories;
 using PurchaseWeb.Wasm.Services;
 using PurchaseWeb.Wasm.Usecases.PreOrder;
+using System.Text.Json;
+using ImageCache = PurchaseWeb.Wasm.Repositories.ImageCache;
 
 namespace PurchaseWeb.Wasm.Pages;
 
@@ -19,6 +21,9 @@ public partial class PreOrder
     public required ITenantProvider TenantProvider { get; set; }
 
     [Inject]
+    public required QrCodeService QrService { get; set; }
+
+    [Inject]
     public required ISnackbar Snackbar { get; set; }
 
     public List<PreOrderItem> OrderItems { get; set; } = [];
@@ -30,10 +35,11 @@ public partial class PreOrder
     private bool _isGeneratingQr = false;
 
     private Dictionary<string, string?> _productImages = [];
+    private Dictionary<string, string?> _productImageSrcs = [];
     private HashSet<string> _imageLoadComplete = [];
 
     public bool IsImageLoaded(string productId) => _imageLoadComplete.Contains(productId);
-    public string? GetProductImage(string productId) => _productImages.GetValueOrDefault(productId);
+    public string? GetProductImageSrc(string productId) => _productImageSrcs.GetValueOrDefault(productId);
 
     public List<PreOrderItem> CartItems => OrderItems.Where(x => x.Quantity > 0).ToList();
     public int TotalAmount => CartItems.Sum(x => x.SubTotal);
@@ -67,6 +73,7 @@ public partial class PreOrder
                 }).ToList();
 
                 _productImages = [];
+                _productImageSrcs = [];
                 _imageLoadComplete = [];
             }
         }
@@ -81,19 +88,30 @@ public partial class PreOrder
 
     private async Task LoadImagesAsync()
     {
-        var targets = OrderItems.ToList();
-        foreach (var item in targets)
+        var productIds = OrderItems.Select(x => x.ProductId).ToList();
+        foreach (var id in productIds)
         {
             try
             {
-                var image = await PreOrderUsecase.GetProductImageAsync(item.ProductId);
-                _productImages[item.ProductId] = image;
+                string? base64;
+                if (ImageCache.TryGet(id, out var cached))
+                {
+                    base64 = cached;
+                }
+                else
+                {
+                    base64 = await PreOrderUsecase.GetProductImageAsync(id);
+                    ImageCache.Set(id, base64);
+                }
+                _productImages[id] = base64;
+                _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
             }
             catch
             {
-                _productImages[item.ProductId] = null;
+                _productImages[id] = null;
+                _productImageSrcs[id] = null;
             }
-            _imageLoadComplete.Add(item.ProductId);
+            _imageLoadComplete.Add(id);
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -113,24 +131,23 @@ public partial class PreOrder
         }
     }
 
-    private async Task GenerateQrCode()
+    private Task GenerateQrCode()
     {
-        if (!CartItems.Any()) return;
+        if (!CartItems.Any()) return Task.CompletedTask;
 
         _isGeneratingQr = true;
         ShowQrCode = true;
-        StateHasChanged();
 
         try
         {
-            var items = CartItems.Select(x => new QrCartItem(x.ProductId, x.Quantity)).ToList();
-            QrCodeBase64 = await PreOrderUsecase.GenerateCartQrAsync(TenantId, items);
-
-            if (QrCodeBase64 == null)
+            // カートの内容をJSONにシリアライズしてQRを生成（クライアント側、API不要）
+            var payload = new
             {
-                Snackbar.Add("QRコードの生成に失敗しました", Severity.Error);
-                ShowQrCode = false;
-            }
+                TenantId,
+                Items = CartItems.Select(x => new { x.ProductId, x.Quantity })
+            };
+            var json = JsonSerializer.Serialize(payload);
+            QrCodeBase64 = QrService.GenerateQrBase64(json);
         }
         catch (Exception ex)
         {
@@ -142,6 +159,8 @@ public partial class PreOrder
             _isGeneratingQr = false;
             StateHasChanged();
         }
+
+        return Task.CompletedTask;
     }
 
     private void BackToOrder()
@@ -151,19 +170,19 @@ public partial class PreOrder
         StateHasChanged();
     }
 
-    private string GetStockText(int? stock)
+    private static string GetStockText(int? stock) => stock switch
     {
-        if (stock == null) return "在庫：無制限";
-        if (stock == 0) return "在庫なし";
-        if (stock <= 5) return $"在庫：残り {stock} 個";
-        return $"在庫あり：およそ {stock} 個";
-    }
+        null => "在庫：無制限",
+        0    => "在庫なし",
+        <= 5 => $"残り {stock} 個",
+        _    => $"在庫：{stock} 個"
+    };
 
-    private Color GetStockColor(int? stock)
+    private static Color GetStockColor(int? stock) => stock switch
     {
-        if (stock == null) return Color.Success;
-        if (stock == 0) return Color.Error;
-        if (stock <= 5) return Color.Warning;
-        return Color.Success;
-    }
+        null => Color.Default,
+        0    => Color.Error,
+        <= 5 => Color.Warning,
+        _    => Color.Success
+    };
 }

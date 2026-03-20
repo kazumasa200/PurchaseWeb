@@ -5,7 +5,6 @@ namespace PurchaseWeb.Wasm.Usecases.Register;
 public interface IRegisterUsecase
 {
     Task<List<ProductBuy>> GetProductsAsync();
-    Task<Dictionary<string, string?>> GetAllProductImagesAsync();
+    Task<string?> GetProductImageAsync(string productId);
     Task<Result<PurchaseLog>> PurchaseAsync(List<PurchaseLog> items);
-    Task<string?> GeneratePreOrderQrAsync(string url);
 }

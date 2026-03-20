@@ -17,6 +17,9 @@ public interface IProductRepository
     Task<Product?> GetByIdAsync(string productId);
     Task<Result<Product>> ReduceStockAsync(string productId, int quantity);
 
+    /// <summary>購入取り消し時に在庫を戻す（null / -1 = 無制限は対象外）</summary>
+    Task RestoreStockAsync(string productId, int quantity);
+
     /// <summary>商品画像を保存（null または空文字は削除）</summary>
     Task SaveImageAsync(string productId, string? imageBase64);
 }
@@ -193,20 +196,46 @@ public class ProductRepository : BaseRepository, IProductRepository
                 if (product == null)
                     return Result<Product>.Failure("商品が見つかりません");
 
-                if (product.StockQuantity.HasValue)
-                {
-                    var updated = Product.ReduceStock(product, quantity);
-                    context.Product.Update(updated);
-                    await context.SaveChangesAsync();
-                    return Result<Product>.Success(updated);
-                }
+                // null は無制限扱い → 在庫変更なし
+                if (!product.StockQuantity.HasValue)
+                    return Result<Product>.Success(product);
 
-                return Result<Product>.Success(product);
+                var updated = Product.ReduceStock(product, quantity);
+                context.Product.Update(updated);
+                await context.SaveChangesAsync();
+                return Result<Product>.Success(updated);
             });
         }
         catch (Exception ex)
         {
             return Result<Product>.Failure($"在庫更新エラー: {ex.Message}");
+        }
+    }
+
+    public async Task RestoreStockAsync(string productId, int quantity)
+    {
+        try
+        {
+            await ExecuteInTransactionAsync<int>(async context =>
+            {
+                var product = await context.Product
+                    .FirstOrDefaultAsync(p => p.ProductId == productId
+                        && p.TenantId == CurrentTenantId
+                        && !p.DeleteFlag);
+
+                // 商品が見つからない、null（無制限）は対象外
+                if (product == null || !product.StockQuantity.HasValue)
+                    return 0;
+
+                product.StockQuantity += quantity;
+                product.UpdateDate = DateTime.Now;
+                await context.SaveChangesAsync();
+                return 0;
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"RestoreStockAsync error: {ex.Message}");
         }
     }
 }

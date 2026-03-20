@@ -121,32 +121,33 @@ public partial class ProductManage : IDisposable
 
     private async Task LoadImagesAsync()
     {
-        try
+        var productIds = Products.Select(p => p.ProductId).ToList();
+        foreach (var id in productIds)
         {
-            var allImages = await ProductManageUsecase.GetAllProductImagesAsync();
-            foreach (var (productId, base64) in allImages)
+            try
             {
-                _productImages[productId] = base64;
-                _productImageSrcs[productId] = base64 is null ? null : $"data:image;base64,{base64}";
-                ImageCache.Set(productId, base64);
-                _imageLoadComplete.Add(productId);
-            }
-            foreach (var product in Products)
-            {
-                var id = product.ProductId;
-                if (!_imageLoadComplete.Contains(id) && ImageCache.TryGet(id, out var cached))
+                string? base64;
+                if (ImageCache.TryGet(id, out var cached))
                 {
-                    _productImages[id] = cached;
-                    _productImageSrcs[id] = cached is null ? null : $"data:image;base64,{cached}";
-                    _imageLoadComplete.Add(id);
+                    base64 = cached;
                 }
+                else
+                {
+                    base64 = await ProductManageUsecase.GetProductImageAsync(id);
+                    ImageCache.Set(id, base64);
+                }
+                _productImages[id] = base64;
+                _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
             }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"LoadImagesAsync [{id}] error: {ex.Message}");
+                _productImages[id] = null;
+                _productImageSrcs[id] = null;
+            }
+            _imageLoadComplete.Add(id);
+            await InvokeAsync(StateHasChanged);
         }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"LoadImagesAsync error: {ex.Message}");
-        }
-        await InvokeAsync(StateHasChanged);
     }
 
     public bool IsImageLoaded(string productId) => _imageLoadComplete.Contains(productId);
@@ -180,6 +181,28 @@ public partial class ProductManage : IDisposable
 
     private async Task OpenEditDialog(Product product)
     {
+        // 画像がまだロード中の場合はここで取得してからダイアログを開く（nullのまま保存すると画像が消える）
+        if (IsImageLoaded(product.ProductId))
+        {
+            product.ImageBase64 = GetProductImage(product.ProductId);
+        }
+        else
+        {
+            try
+            {
+                var img = await ProductManageUsecase.GetProductImageAsync(product.ProductId);
+                _productImages[product.ProductId] = img;
+                _productImageSrcs[product.ProductId] = img is null ? null : $"data:image;base64,{img}";
+                ImageCache.Set(product.ProductId, img);
+                _imageLoadComplete.Add(product.ProductId);
+                product.ImageBase64 = img;
+            }
+            catch
+            {
+                product.ImageBase64 = null;
+            }
+        }
+
         var parameters = new DialogParameters
         {
             { nameof(Component.ProductEditDialog.IsNew), false },

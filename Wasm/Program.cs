@@ -23,6 +23,7 @@ builder.Services.AddMudServices();
 
 builder.Services.AddScoped<ITenantProvider, ClientTenantProvider>();
 builder.Services.AddScoped<UserState>();
+builder.Services.AddScoped<QrCodeService>();
 
 builder.Services.AddScoped<IProductRepository, ProductApiRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyApiRepository>();
