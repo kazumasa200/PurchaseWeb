@@ -1,37 +1,29 @@
 using Infra.Persistance.Context;
 using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
-using MudBlazor;
-using MudBlazor.Services;
-using PurchaseWeb.Services;
+using PurchaseWeb;
+using PurchaseWeb.Adapters;
+using PurchaseWeb.Api;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();  // �� ���ɖ߂�
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("db")));
 
-builder.Services.AddMudServices();
-builder.Services.AddMudMarkdownServices();
+// テナントプロバイダー（API エンドポイントが X-Tenant-Id ヘッダーから設定）
+builder.Services.AddScoped<SharedTenantProvider>();
+builder.Services.AddScoped<ITenantProvider>(sp => sp.GetRequiredService<SharedTenantProvider>());
 
-// TenantProvider��o�^
-builder.Services.AddScoped<ITenantProvider, TenantProvider>();
-
-// ���|�W�g���̓o�^
-builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+// Infra リポジトリ（EF Core 実装）
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// LM Studio サービス（チャット API）
 builder.Services.AddScoped<LMStudioService>();
 
-// AppSettings�̍\����ǉ�
-builder.Services.Configure<AppSettings>(builder.Configuration);
-
-// �T�[�r�X��ǉ�
-builder.Services.AddScoped<AppSettingsService>();
+// AppSettings
 builder.Services.AddScoped<AppSettings>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
@@ -39,23 +31,39 @@ builder.Services.AddScoped<AppSettings>(sp =>
     configuration.Bind(appSettings);
     return appSettings;
 });
+builder.Services.AddScoped<AppSettingsService>();
 
-builder.Services.AddScoped<UserState>();
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
     app.UseHttpsRedirection();
     app.UseHsts();
 }
 
-app.UseStaticFiles();
-app.UseRouting();
+app.UseCors();
 
-app.MapBlazorHub();  // �� ���ɖ߂�
-app.MapFallbackToPage("/_Host");  // �� ���ɖ߂�
+// Blazor WASM フレームワークファイルと静的ファイルの配信
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
+
+// Minimal API エンドポイント
+app.MapLMStudioEndpoints();
+app.MapProductEndpoints();
+app.MapProductBuyEndpoints();
+app.MapTenantEndpoints();
+app.MapPurchaseLogEndpoints();
+app.MapAuthEndpoints();
+app.MapQrEndpoints();
+
+// すべての未マッチリクエストは index.html へフォールバック（SPA ルーティング）
+app.MapFallbackToFile("index.html");
 
 app.Run();

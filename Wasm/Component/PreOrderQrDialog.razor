@@ -1,0 +1,68 @@
+@using PurchaseWeb.Wasm.Repositories
+@inherits MudComponentBase
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+            このQRコードをお客様に読み取っていただくと<br />事前注文画面に進めます
+        </MudText>
+
+        <div class="d-flex justify-center mb-4">
+            @if (!string.IsNullOrEmpty(QrCodeBase64))
+            {
+                <img src="@($"data:image/png;base64,{QrCodeBase64}")"
+                     alt="事前注文QR"
+                     style="width: 220px; height: 220px;" />
+            }
+            else if (_isLoading)
+            {
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            }
+        </div>
+
+        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+            @PreOrderUrl
+        </MudText>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" OnClick="() => MudDialog.Cancel()">閉じる</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public string PreOrderUrl { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject]
+    private IQrRepository QrRepository { get; set; } = default!;
+
+    private string? QrCodeBase64 { get; set; }
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerateQr();
+    }
+
+    private async Task GenerateQr()
+    {
+        if (string.IsNullOrEmpty(PreOrderUrl)) return;
+
+        try
+        {
+            QrCodeBase64 = await QrRepository.GenerateUrlQrAsync(PreOrderUrl);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"QR生成エラー: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

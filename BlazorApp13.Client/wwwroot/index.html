@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>noeleve.net</title>
+    <base href="/" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="_content/MudBlazor.Markdown/MudBlazor.Markdown.min.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <style>
+        /* WASM 読み込みバー */
+        #wasm-loading-bar-wrap {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            z-index: 10000;
+            overflow: hidden;
+            background: rgba(25,118,210,0.15);
+        }
+        #wasm-loading-bar-fill {
+            height: 100%;
+            background: #1976d2;
+            width: 0%;
+            transition: width 0.15s linear, opacity 0.4s ease;
+        }
+        /* 不定アニメーション: 左右に走るバー */
+        #wasm-loading-bar-indeterminate {
+            position: absolute;
+            top: 0; height: 100%;
+            width: 40%;
+            background: linear-gradient(to right, transparent, #1976d2, transparent);
+            animation: wasm-indeterminate 1.4s infinite linear;
+        }
+        @keyframes wasm-indeterminate {
+            0%   { left: -40%; }
+            100% { left: 100%; }
+        }
+        /* ロード中のプレースホルダー */
+        #app-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Roboto, sans-serif;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- WASM 読み込みバー（Blazor 起動完了で非表示） -->
+    <div id="wasm-loading-bar-wrap">
+        <div id="wasm-loading-bar-fill"></div>
+        <div id="wasm-loading-bar-indeterminate"></div>
+    </div>
+
+    <!-- Blazor マウントポイント（ロード中はプレースホルダーを表示） -->
+    <div id="app">
+        <div id="app-loading">読み込み中...</div>
+    </div>
+
+    <div id="blazor-error-ui" style="display:none; position:fixed; bottom:0; width:100%; background:#ffcc00; padding:8px; text-align:center; z-index:9999;">
+        エラーが発生しました。
+        <a href="" style="font-weight:bold;">再読み込みする</a>
+        <span onclick="this.parentElement.style.display='none';" style="cursor:pointer; margin-left:8px;">✕</span>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_content/MudBlazor.Markdown/MudBlazor.Markdown.min.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script src="scripts/scrolls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="js/qrScanner.js"></script>
+    <script>
+        (function () {
+            var wrap  = document.getElementById('wasm-loading-bar-wrap');
+            var fill  = document.getElementById('wasm-loading-bar-fill');
+            var indet = document.getElementById('wasm-loading-bar-indeterminate');
+
+            function completeBar() {
+                // 不定アニメーションを止めて 100% まで伸ばす
+                if (indet) indet.style.display = 'none';
+                if (fill) {
+                    fill.style.transition = 'width 0.25s ease-out, opacity 0.4s ease';
+                    fill.style.width = '100%';
+                }
+                // 少し待ってからフェードアウト
+                setTimeout(function () {
+                    if (wrap) {
+                        wrap.style.transition = 'opacity 0.4s ease';
+                        wrap.style.opacity = '0';
+                        setTimeout(function () {
+                            if (wrap) wrap.style.display = 'none';
+                        }, 400);
+                    }
+                }, 250);
+            }
+
+            Blazor.start().then(completeBar).catch(function () {
+                if (wrap) wrap.style.display = 'none';
+            });
+        })();
+    </script>
+</body>
+</html>

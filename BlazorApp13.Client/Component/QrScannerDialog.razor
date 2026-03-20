@@ -1,0 +1,126 @@
+@inherits MudComponentBase
+@implements IAsyncDisposable
+
+<MudDialog>
+    <DialogContent>
+        <div style="position: relative; min-height: 200px;">
+
+            @if (IsInitializing)
+            {
+                <!-- videoの上にオーバーレイでローディング表示 -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                                display: flex; align-items: center; justify-content: center;
+                                background: rgba(255,255,255,0.85); z-index: 10; border-radius: 8px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+
+            @if (CameraError)
+            {
+                <div class="text-center pa-4">
+                    <MudIcon Icon="@Icons.Material.Filled.NoPhotography" Size="Size.Large" Color="Color.Error" />
+                    <MudText Class="mt-2" Color="Color.Error">カメラへのアクセスに失敗しました</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        ブラウザのカメラ許可を確認してください
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <!-- 常にDOMに存在させる → JSが確実に見つけられる -->
+                <video id="qr-video"
+                       style="width: 100%; border-radius: 8px;"
+                       autoplay muted playsinline></video>
+
+                <!-- スキャン枠 -->
+                @if (!IsInitializing)
+                {
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                         width: 200px; height: 200px; border: 3px solid var(--mud-palette-primary);
+                                         border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);">
+                    </div>
+                }
+            }
+        </div>
+
+        <canvas id="qr-canvas" style="display: none;"></canvas>
+
+        @if (!CameraError && !IsInitializing)
+        {
+            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2" Color="Color.Secondary">
+                QRコードを枠内に合わせてください
+            </MudText>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" OnClick="Cancel">キャンセル</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    private DotNetObjectReference<QrScannerDialog>? _dotNetRef;
+    private bool IsInitializing { get; set; } = true;
+    private bool CameraError { get; set; } = false;
+    private bool _detected = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+
+            // 1. まずvideoタグをDOMに出す（IsInitializingのままでオーバーレイ表示）
+            StateHasChanged();
+
+            // 2. Blazorの再レンダリング完了を待つ
+            await Task.Delay(100);
+
+            // 3. videoタグが存在する状態でJS呼び出し
+            try
+            {
+                var success = await JS.InvokeAsync<bool>(
+                    "qrScanner.start", _dotNetRef, "qr-video", "qr-canvas");
+
+                CameraError = !success;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Camera start error: {ex.Message}");
+                CameraError = true;
+            }
+
+            // 4. ローディング解除
+            IsInitializing = false;
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnQrDetected(string data)
+    {
+        if (_detected) return;
+        _detected = true;
+
+        await JS.InvokeVoidAsync("qrScanner.stop");
+        MudDialog.Close(DialogResult.Ok(data));
+    }
+
+    private async Task Cancel()
+    {
+        await JS.InvokeVoidAsync("qrScanner.stop");
+        MudDialog.Cancel();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("qrScanner.stop");
+        _dotNetRef?.Dispose();
+    }
+}

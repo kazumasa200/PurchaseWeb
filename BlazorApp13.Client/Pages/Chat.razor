@@ -1,0 +1,65 @@
+@page "/chat"
+@using System.Text.Json
+
+<MudCard>
+    <MudCardHeader>
+        <MudText Typo="Typo.h5">LMStudio Chat</MudText>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudSelect T="string" Label="モデルを選択" @bind-Value="selectedModel">
+            @foreach (var model in models)
+            {
+                <MudSelectItem Value="@model.Id">@model.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <ScrollToBottom Context="_scrollToBottomContext" ScrollHostId="scrollHost" />
+        <MudPaper Class="d-flex flex-column mt-4" Style="height: 50vh; overflow-y: auto;" id="scrollHost">
+            @foreach (var message in chatMessages)
+            {
+                @if (message.Role == "user")
+                {
+                    <MudPaper Class="pa-4 my-2 ml-auto" Style="max-width: 80%; background-color: #E3F2FD; border-radius: 15px;">
+                        <MudText>@message.Content</MudText>
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudPaper Class="pa-4 my-2 mr-auto" Style="max-width: 80%; background-color: #F5F5F5; border-radius: 15px;">
+                        @if (message.ThinkingContents.Any())
+                        {
+                            @foreach (var thinking in message.ThinkingContents)
+                            {
+                                <MudMarkdown Value="@thinking.BeforeThink" />
+                                <MudExpansionPanel Class="mt-2">
+                                    <TitleContent>
+                                        <MudText>思考プロセス</MudText>
+                                    </TitleContent>
+                                    <ChildContent>
+                                        <MudText Color="Color.Info">@((MarkupString)thinking.ThinkText)</MudText>
+                                    </ChildContent>
+                                </MudExpansionPanel>
+                                <MudMarkdown Value="@thinking.AfterThink"></MudMarkdown>
+                            }
+                        }
+                        else
+                        {
+                            <MudMarkdown Value="@message.Content" />
+                        }
+                    </MudPaper>
+                }
+            }
+        </MudPaper>
+        @if (isThinking)
+        {
+            <MudProgressLinear Size="Size.Large" Class="mt-4" Indeterminate />
+        }
+        <MudTextField @bind-Value="currentMessage" Label="メッセージを入力"
+                      Class="mt-4" Variant="Variant.Outlined" Immediate
+                      @onkeyup="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
+
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Class="mt-2" OnClick="SendMessage" Disabled="@(!CanSendMessage)">
+            送信
+        </MudButton>
+    </MudCardContent>
+</MudCard>

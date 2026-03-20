@@ -1,0 +1,35 @@
+@inherits MudComponentBase
+
+<MudDialog>
+    <DialogContent>
+        <MudText>
+            「<strong>@Product?.ProductName</strong>」を削除しますか？
+        </MudText>
+        <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">
+            この操作は元に戻せません。
+        </MudText>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="CancelDialog">キャンセル</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="ConfirmDelete">削除する</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public Product? Product { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void CancelDialog()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void ConfirmDelete()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

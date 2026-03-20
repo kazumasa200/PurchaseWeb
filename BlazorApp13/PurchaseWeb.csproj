@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,28 +6,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <MudAllowedAttributePattern>LowerCase</MudAllowedAttributePattern>
-    <MudIllegalParameters>V7CaseSensitive</MudIllegalParameters>
-  </PropertyGroup>
-
   <ItemGroup>
-    <CompilerVisibleProperty Include="MudAllowedAttributePattern" />
-    <CompilerVisibleProperty Include="MudIllegalParameters" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.44.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
-    <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="10.0.2" />
-    <PackageReference Include="MudBlazor" Version="8.15.0" />
-    <PackageReference Include="MudBlazor.Markdown" Version="8.11.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="QRCoder" Version="1.7.0" />
   </ItemGroup>
-  
+
   <ItemGroup>
+    <!--
+      Client を参照することで UseBlazorFrameworkFiles() が WASM ファイルを認識する。
+      モデル型は Client → Shared の推移的参照で取得するため、Shared の明示参照は不要。
+    -->
+    <ProjectReference Include="..\BlazorApp13.Client\PurchaseWeb.Client.csproj" />
     <ProjectReference Include="..\Infra\Infra.csproj" />
   </ItemGroup>
 

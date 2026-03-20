@@ -1,0 +1,165 @@
+@page "/preorder/{TenantId}"
+
+<PageTitle>事前注文</PageTitle>
+
+@if (IsLoading)
+{
+    <MudContainer Class="d-flex justify-center align-center" Style="min-height: 50vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </MudContainer>
+}
+else if (!TenantExists)
+{
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">
+                無効なテナントです
+            </MudText>
+        </MudPaper>
+    </MudContainer>
+}
+else if (ShowQrCode)
+{
+    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">QRコード</MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary" Class="mb-4">
+                レジでこのQRコードを読み取ってください
+            </MudText>
+
+            <div class="d-flex justify-center mb-4">
+                @if (_isGeneratingQr)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (!string.IsNullOrEmpty(QrCodeBase64))
+                {
+                    <img src="@($"data:image/png;base64,{QrCodeBase64}")"
+                         alt="QRコード"
+                         style="width: 250px; height: 250px;" />
+                }
+            </div>
+
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary" Class="mb-4">
+                スクショしておくと安心！
+            </MudText>
+
+            <MudDivider Class="mb-3" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">注文内容</MudText>
+            @foreach (var item in CartItems)
+            {
+                <div class="d-flex justify-space-between mb-1">
+                    <MudText Typo="Typo.body2">@item.ProductName × @item.Quantity</MudText>
+                    <MudText Typo="Typo.body2">@item.SubTotal 円</MudText>
+                </div>
+            }
+            <MudDivider Class="my-2" />
+            <div class="d-flex justify-space-between">
+                <MudText Typo="Typo.subtitle1"><strong>合計</strong></MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary"><strong>@TotalAmount 円</strong></MudText>
+            </div>
+
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" FullWidth Class="mt-4" OnClick="BackToOrder">
+                注文を変更する
+            </MudButton>
+        </MudPaper>
+    </MudContainer>
+}
+else
+{
+    <div style="background: var(--mud-palette-primary); padding: 16px; color: white;">
+        <MudContainer>
+            <MudText Typo="Typo.h5">事前注文</MudText>
+            <MudText Typo="Typo.body2" Style="opacity: 0.8;">商品を選んでQRコードを生成してください</MudText>
+            <MudText Typo="Typo.body2" Style="opacity: 0.8;">予約せずに直接レジでの購入も可能です</MudText>
+            <MudText Typo="Typo.body2" Style="opacity: 0.8;">※在庫数は目安であり、購入を確約するものではありません。</MudText>
+        </MudContainer>
+    </div>
+
+    <MudContainer Class="mt-4">
+        @foreach (var item in OrderItems)
+        {
+            <MudCard Class="mb-3" Elevation="2">
+                <MudCardContent>
+                    <div class="d-flex gap-3 align-center">
+                        <div style="width: 200px; flex-shrink: 0;">
+                            @if (!IsImageLoaded(item.ProductId))
+                            {
+                                <MudSkeleton SkeletonType="SkeletonType.Rectangle"
+                                             Width="200px" Height="200px"
+                                             Style="border-radius: 8px;" />
+                            }
+                            else if (!string.IsNullOrEmpty(GetProductImage(item.ProductId)))
+                            {
+                                <img src="@($"data:image;base64,{GetProductImage(item.ProductId)}")"
+                                     alt="@item.ProductName"
+                                     style="width: 200px; object-fit: cover; border-radius: 8px;" />
+                            }
+                            else
+                            {
+                                <div style="width: 200px; height: 200px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                </div>
+                            }
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-space-between align-start">
+                                <MudText Typo="Typo.subtitle1"><strong>@item.ProductName</strong></MudText>
+                                <MudChip T="string" Text="@GetStockText(item.StockQuantity)"
+                                         Color="@GetStockColor(item.StockQuantity)"
+                                         Size="Size.Small" Variant="Variant.Filled" />
+                            </div>
+                            <MudText Typo="Typo.body1" Color="Color.Primary">@item.Price 円</MudText>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-center justify-end gap-2 mt-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                       Size="Size.Small"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Default"
+                                       Disabled="@(item.Quantity <= 0)"
+                                       OnClick="() => DecreaseQuantity(item)" />
+                        <MudText Typo="Typo.h6" Style="min-width: 32px; text-align: center;">
+                            @item.Quantity
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                       Size="Size.Small"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="() => IncreaseQuantity(item)" />
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        }
+
+        @if (!OrderItems.Any())
+        {
+            <MudPaper Elevation="1" Class="pa-8 text-center">
+                <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6" Class="mt-3">商品がありません</MudText>
+            </MudPaper>
+        }
+    </MudContainer>
+
+    @if (CartItems.Any())
+    {
+        <div style="position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e0e0e0; padding: 12px 16px; z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.1);">
+            <MudContainer>
+                <div class="d-flex justify-space-between align-center mb-2">
+                    <MudText Typo="Typo.body1">@CartItems.Sum(x => x.Quantity) 点</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Primary">
+                        <strong>合計 @TotalAmount 円</strong>
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth
+                           StartIcon="@Icons.Material.Filled.QrCode"
+                           OnClick="GenerateQrCode">
+                    注文用QRコードを生成する
+                </MudButton>
+            </MudContainer>
+        </div>
+        <div style="height: 100px;"></div>
+    }
+}

@@ -1,0 +1,57 @@
+@page "/"
+@page "/login"
+@implements IDisposable
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="d-flex flex-column align-center justify-center min-vh-100">
+    <MudCard Class="pa-6 ma-2" MaxWidth="500px" Style="border-radius: 20px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);">
+        <MudCardHeader>
+            <MudText Typo="Typo.h4" Align="Align.Center">ログイン</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (!UserState.IsStoreUser)
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    パスワードを入力してログインしてください
+                </MudText>
+                <MudTextField @bind-Value="password" Immediate Label="パスワード" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-4" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="Logins" Class="mb-4">
+                    ログイン
+                </MudButton>
+            }
+            else if (!UserState.HasTenant)
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    テナントを選択してください
+                </MudText>
+                @if (tenants.Any())
+                {
+                    <MudSelect @bind-Value="selectedTenantId" Label="テナント" Variant="Variant.Outlined" Class="mb-4">
+                        @foreach (var tenant in tenants)
+                        {
+                            <MudSelectItem Value="@tenant.TenantId">@tenant.TenantName</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="SelectTenant" Class="mb-4" Disabled="@string.IsNullOrEmpty(selectedTenantId)">
+                        選択
+                    </MudButton>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-4">テナントが登録されていません</MudAlert>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToTenantManage" Class="mb-4">
+                        テナント管理へ
+                    </MudButton>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    ログイン成功（テナント: @UserState.CurrentTenantName）
+                </MudText>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToProductManage" Class="mb-4">商品管理</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToRegister" Class="mb-4">購入レジ</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToPurchaseHistory" Class="mb-4">購入履歴</MudButton>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudContainer>

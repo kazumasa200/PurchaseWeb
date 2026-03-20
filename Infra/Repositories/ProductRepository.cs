@@ -1,4 +1,4 @@
-﻿using Infra.Persistance;
+using Infra.Persistance;
 using Infra.Persistance.Context;
 using Infra.Persistance.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -7,41 +7,18 @@ namespace Infra.Repositories;
 
 public interface IProductRepository
 {
-    /// <summary>
-    /// 商品一覧を取得する
-    /// </summary>
-    /// <returns></returns>
-    public Task<List<Product>> GetActiveProducts();
+    Task<List<Product>> GetActiveProducts();
+    Task<List<Product>> GetActiveProductsWithoutImages();
+    Task<string?> GetProductImageAsync(string productId);
+    Task<Dictionary<string, string?>> GetAllProductImagesAsync();
+    Task<List<Product>> GetAllProducts();
+    Task<Result<Product>> AddAsync(Product product);
+    Task<Result<Product>> UpdateAsync(Product product);
+    Task<Product?> GetByIdAsync(string productId);
+    Task<Result<Product>> ReduceStockAsync(string productId, int quantity);
 
-    /// <summary>
-    /// 削除状態にかかわらず全ての商品を取得する
-    /// </summary>
-    /// <returns></returns>
-    public Task<List<Product>> GetAllProducts();
-
-    /// <summary>
-    /// 商品を追加
-    /// </summary>
-    /// <param name="product">追加する商品</param>
-    /// <returns>処理結果</returns>
-    public Task<Result<Product>> AddAsync(Product product);
-
-    /// <summary>
-    /// 商品を更新
-    /// </summary>
-    /// <param name="product">追加する商品</param>
-    /// <returns>処理結果</returns>
-    public Task<Result<Product>> UpdateAsync(Product product);
-
-    /// <summary>
-    /// 商品IDで取得
-    /// </summary>
-    public Task<Product?> GetByIdAsync(string productId);
-
-    /// <summary>
-    /// 在庫を減らす
-    /// </summary>
-    public Task<Result<Product>> ReduceStockAsync(string productId, int quantity);
+    /// <summary>商品画像を保存（null または空文字は削除）</summary>
+    Task SaveImageAsync(string productId, string? imageBase64);
 }
 
 public class ProductRepository : BaseRepository, IProductRepository
@@ -57,9 +34,68 @@ public class ProductRepository : BaseRepository, IProductRepository
     {
         return await ExecuteInContextAsync(context =>
             context.Product
-                .Where(x => x.TenantId == CurrentTenantId && !x.DeleteFlag)  // テナントフィルタ追加
+                .Where(x => x.TenantId == CurrentTenantId && !x.DeleteFlag)
                 .OrderBy(x => x.CreateDate)
                 .ToListAsync());
+    }
+
+    public async Task<List<Product>> GetActiveProductsWithoutImages()
+    {
+        // 画像は別テーブルなので同じクエリで OK（Product に ImageBase64 なし）
+        return await GetActiveProducts();
+    }
+
+    public async Task<string?> GetProductImageAsync(string productId)
+    {
+        return await ExecuteInContextAsync(context =>
+            context.ProductImages
+                .Where(pi => pi.ProductId == productId
+                    && pi.Product!.TenantId == CurrentTenantId
+                    && !pi.Product.DeleteFlag)
+                .Select(pi => pi.ImageBase64)
+                .FirstOrDefaultAsync());
+    }
+
+    public async Task<Dictionary<string, string?>> GetAllProductImagesAsync()
+    {
+        return await ExecuteInContextAsync(async context =>
+        {
+            var images = await context.ProductImages
+                .Where(pi => pi.Product!.TenantId == CurrentTenantId && !pi.Product.DeleteFlag)
+                .Select(pi => new { pi.ProductId, pi.ImageBase64 })
+                .ToListAsync();
+            return images.ToDictionary(x => x.ProductId, x => x.ImageBase64);
+        });
+    }
+
+    public async Task SaveImageAsync(string productId, string? imageBase64)
+    {
+        await ExecuteInTransactionAsync<int>(async context =>
+        {
+            var existing = await context.ProductImages
+                .FirstOrDefaultAsync(pi => pi.ProductId == productId);
+
+            if (existing != null)
+            {
+                if (string.IsNullOrEmpty(imageBase64))
+                    context.ProductImages.Remove(existing);
+                else
+                    existing.ImageBase64 = imageBase64;
+            }
+            else if (!string.IsNullOrEmpty(imageBase64))
+            {
+                await context.ProductImages.AddAsync(new ProductImage
+                {
+                    ImageId     = Guid.NewGuid().ToString(),
+                    ProductId   = productId,
+                    ImageBase64 = imageBase64,
+                    CreatedAt   = DateTime.UtcNow
+                });
+            }
+
+            await context.SaveChangesAsync();
+            return 0;
+        });
     }
 
     public async Task<List<Product>> GetAllProducts()
@@ -68,7 +104,7 @@ public class ProductRepository : BaseRepository, IProductRepository
         {
             return await ExecuteInContextAsync(context =>
                 context.Product
-                    .Where(x => x.TenantId == CurrentTenantId)  // テナントフィルタ追加
+                    .Where(x => x.TenantId == CurrentTenantId)
                     .OrderBy(x => x.CreateDate)
                     .ToListAsync());
         }
@@ -91,12 +127,10 @@ public class ProductRepository : BaseRepository, IProductRepository
     {
         try
         {
-            var result = await ExecuteInTransactionAsync(async context =>
+            return await ExecuteInTransactionAsync(async context =>
             {
-                // テナントIDを設定
                 SetTenantId(product);
 
-                // 重複チェック（テナント内）
                 var exists = await context.Product
                     .AnyAsync(p => p.TenantId == CurrentTenantId
                         && p.ProductName == product.ProductName
@@ -107,11 +141,8 @@ public class ProductRepository : BaseRepository, IProductRepository
 
                 var entry = await context.Product.AddAsync(product);
                 await context.SaveChangesAsync();
-
                 return Result<Product>.Success(entry.Entity);
             });
-
-            return result;
         }
         catch (Exception ex)
         {
@@ -123,12 +154,10 @@ public class ProductRepository : BaseRepository, IProductRepository
     {
         try
         {
-            var result = await ExecuteInTransactionAsync(async context =>
+            return await ExecuteInTransactionAsync(async context =>
             {
-                // テナントIDを設定
                 SetTenantId(product);
 
-                // 重複チェック（テナント内）
                 var exists = await context.Product
                     .AnyAsync(p => p.TenantId == CurrentTenantId
                         && p.ProductName == product.ProductName
@@ -140,11 +169,8 @@ public class ProductRepository : BaseRepository, IProductRepository
 
                 var entry = context.Product.Update(product);
                 await context.SaveChangesAsync();
-
                 return Result<Product>.Success(entry.Entity);
             });
-
-            return result;
         }
         catch (Exception ex)
         {
@@ -152,14 +178,11 @@ public class ProductRepository : BaseRepository, IProductRepository
         }
     }
 
-    /// <summary>
-    /// 在庫を減らす
-    /// </summary>
     public async Task<Result<Product>> ReduceStockAsync(string productId, int quantity)
     {
         try
         {
-            var result = await ExecuteInTransactionAsync(async context =>
+            return await ExecuteInTransactionAsync(async context =>
             {
                 var product = await context.Product
                     .AsNoTracking()
@@ -180,8 +203,6 @@ public class ProductRepository : BaseRepository, IProductRepository
 
                 return Result<Product>.Success(product);
             });
-
-            return result;
         }
         catch (Exception ex)
         {

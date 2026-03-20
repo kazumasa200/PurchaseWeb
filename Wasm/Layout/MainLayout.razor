@@ -1,0 +1,171 @@
+@using PurchaseWeb.Wasm.Usecases.TenantManage
+@inherits LayoutComponentBase
+@inject NavigationManager navigationManager
+@inject UserState userState
+@inject ITenantManageUsecase TenantManageUsecase
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<PageTitle>noeleve.net</PageTitle>
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudSpacer />
+
+        @if (userState.IsStoreUser && userState.HasTenant)
+        {
+            <MudMenu Icon="@Icons.Material.Filled.Business" Color="Color.Inherit" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                <ActivatorContent>
+                    <MudChip T="string?" Icon="@Icons.Material.Filled.Business" Color="Color.Default" Size="Size.Medium" Style="background-color: white;">
+                        @userState.CurrentTenantName
+                    </MudChip>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudText Typo="Typo.subtitle2" Class="px-4 py-2">テナント切り替え</MudText>
+                    <MudDivider />
+                    @foreach (var tenant in availableTenants)
+                    {
+                        <MudMenuItem OnClick="@(() => SwitchTenant(tenant))">
+                            @if (tenant.TenantId == userState.CurrentTenantId)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Class="mr-2" />
+                            }
+                            @tenant.TenantName
+                        </MudMenuItem>
+                    }
+                    <MudDivider />
+                    <MudMenuItem OnClick="NavigateToTenantManage" Icon="@Icons.Material.Filled.Settings">
+                        テナント管理
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        }
+
+        <ArchitectureInfo />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5" Class="mt-1">Noeleve.net</MudText>
+        </MudDrawerHeader>
+        <MudDivider Class="pa-2" DividerType="DividerType.Middle"/>
+        <NavMenu/>
+        <MudSpacer></MudSpacer>
+        @if (userState.IsStoreUser)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NavigateToLogin">ログイン済み</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NavigateToLogin">ログイン</MudButton>
+        }
+
+    </MudDrawer>
+    <MudMainContent Class="px-4">
+        <ErrorBoundary @ref="_errorBoundary">
+            <ChildContent>@Body</ChildContent>
+            <ErrorContent Context="ex">
+                <MudAlert Severity="Severity.Error" Class="ma-4">
+                    <MudText Typo="Typo.body1">エラーが発生しました: @ex.Message</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Class="mt-2"
+                               OnClick="@(() => _errorBoundary?.Recover())">
+                        再試行
+                    </MudButton>
+                </MudAlert>
+            </ErrorContent>
+        </ErrorBoundary>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+    private List<Tenant> availableTenants = new();
+    private ErrorBoundary? _errorBoundary;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    void NavigateToLogin()
+    {
+        navigationManager.NavigateTo("/");
+    }
+
+    void NavigateToTenantManage()
+    {
+        navigationManager.NavigateTo("/tenantmanage");
+    }
+
+    protected override void OnInitialized()
+    {
+        userState.OnStateChanged += OnStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await userState.InitializeAsync();
+
+                if (userState.IsStoreUser)
+                {
+                    await LoadTenants();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"OnAfterRenderAsync error: {ex.Message}");
+            }
+            finally
+            {
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async void OnStateChanged()
+    {
+        try
+        {
+            await LoadTenants();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"OnStateChanged error: {ex.Message}");
+        }
+    }
+
+    private async Task LoadTenants()
+    {
+        try
+        {
+            availableTenants = await TenantManageUsecase.GetActiveTenantsAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"LoadTenants error: {ex.Message}");
+        }
+    }
+
+    private async Task SwitchTenant(Tenant tenant)
+    {
+        await userState.SetTenantAsync(tenant.TenantId, tenant.TenantName);
+        await InvokeAsync(StateHasChanged);
+        Snackbar.Add($"テナントを「{tenant.TenantName}」に切り替えました", Severity.Success);
+    }
+
+    public void Dispose()
+    {
+        userState.OnStateChanged -= OnStateChanged;
+    }
+}

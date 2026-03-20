@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Tenant> Tenant { get; set; }
     public DbSet<Product> Product { get; set; }
+    public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<PurchaseLog> PurchaseLog { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

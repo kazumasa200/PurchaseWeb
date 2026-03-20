@@ -51,10 +51,6 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(100)
             .IsRequired();
 
-        builder.Property(e => e.ImageBase64)
-            .HasColumnName("image_base64")
-            .HasColumnType("TEXT");
-
         builder.Property(e => e.StockQuantity)
             .HasColumnName("stock_quantity")
             .HasColumnType("INTEGER");

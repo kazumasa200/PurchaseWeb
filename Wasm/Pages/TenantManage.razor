@@ -1,0 +1,70 @@
+@page "/tenantmanage"
+@implements IDisposable
+
+<PageTitle>テナント管理</PageTitle>
+
+@if (UserState.IsStoreUser)
+{
+    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+        <MudText Typo="Typo.h4" Class="mb-4">テナント管理</MudText>
+
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAddDialog" StartIcon="@Icons.Material.Filled.Add" Class="mb-4">
+            新規テナント追加
+        </MudButton>
+
+        <MudDataGrid Items="@tenants" ReadOnly="false" Bordered="true" Dense="true">
+            <Columns>
+                <PropertyColumn Property="x => x.TenantName" Title="テナント名" />
+                <PropertyColumn Property="x => x.CreateDate" Title="作成日" Format="yyyy/MM/dd HH:mm" />
+                <PropertyColumn Property="x => x.UpdateDate" Title="更新日" Format="yyyy/MM/dd HH:mm" />
+                <TemplateColumn Title="操作">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditDialog(context.Item))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OpenDeleteDialog(context.Item))" />
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudContainer>
+}
+else
+{
+    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+        ログインしてください
+    </MudText>
+    <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth OnClick="NavigateToLogin" Class="mb-4">
+        ログイン
+    </MudButton>
+}
+
+<MudDialog Visible="isAddDialogOpen">
+    <DialogContent>
+        <MudTextField @bind-Value="tenantName" Label="テナント名" Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => isAddDialogOpen = false)">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" OnClick="AddTenant">追加</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog Visible="isEditDialogOpen">
+    <DialogContent>
+        <MudTextField @bind-Value="tenantName" Label="テナント名" Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => isEditDialogOpen = false)">キャンセル</MudButton>
+        <MudButton Color="Color.Primary" OnClick="UpdateTenant">更新</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog Visible="isDeleteDialogOpen">
+    <DialogContent>
+        <MudText>本当に「@selectedTenant?.TenantName」を削除しますか？</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => isDeleteDialogOpen = false)">キャンセル</MudButton>
+        <MudButton Color="Color.Error" OnClick="DeleteTenant">削除</MudButton>
+    </DialogActions>
+</MudDialog>
