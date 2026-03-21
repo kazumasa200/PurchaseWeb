@@ -2,13 +2,6 @@ using PurchaseWeb.Client.Models;
 
 namespace PurchaseWeb.Client.Services;
 
-public interface ILMStudioService
-{
-    Task<List<LMStudioModel>> GetModelsAsync();
-    IAsyncEnumerable<string> StreamMessagesAsync(string modelId, List<ChatMessage> chatHistory, ScrollToBottomContext scrollToBottomContext);
-}
-
-
 public interface IProductRepository
 {
     Task<List<Product>> GetActiveProducts();

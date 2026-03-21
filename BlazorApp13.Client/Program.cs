@@ -17,11 +17,9 @@ builder.Services.AddScoped(sp =>
 
 // MudBlazor
 builder.Services.AddMudServices();
-builder.Services.AddMudMarkdownServices();
 
 // クライアント側サービス (HttpClient 経由で API を呼ぶ)
 builder.Services.AddScoped<ITenantProvider, ClientTenantProvider>();
-builder.Services.AddScoped<ILMStudioService, LMStudioApiService>();
 builder.Services.AddScoped<IProductRepository, ProductApiService>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyApiService>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogApiService>();

@@ -3,7 +3,12 @@ using System.Diagnostics;
 
 namespace PurchaseWeb.Wasm.Pages;
 
-public partial class Lottery
+/// <summary>
+/// 宝くじシミュレーター
+/// Blazor WASM はシングルスレッドのため、Task.Run/ThreadLocal は使用不可。
+/// バッチ処理 + await Task.Yield() でUIスレッドを解放しながらシミュレーションを継続する。
+/// </summary>
+public partial class Lottery : IDisposable
 {
     private bool _simulationRunning = false;
     private long _dwCount = 0;
@@ -11,34 +16,22 @@ public partial class Lottery
     private long _dwPrize = 0;
     private long _dwLoss = 0;
     private int _processingSpeed = 0;
-    private bool _tableLoading = false;
 
-    private ThreadLocal<Random> _threadLocalRandom = new ThreadLocal<Random>(() =>
-        new Random(Guid.NewGuid().GetHashCode()));
-
-    private CancellationTokenSource _cts;
-    private Timer _uiUpdateTimer;
+    private CancellationTokenSource? _cts;
+    private long _lastUpdateCount = 0;
+    private readonly Stopwatch _speedStopwatch = new();
 
     private long[] _winCounts = new long[9];
 
-    private ConcurrentBag<WinRecord> _winHistory = new ConcurrentBag<WinRecord>();
-    private List<WinRecord> _displayWinHistory = new List<WinRecord>();
+    private ConcurrentBag<WinRecord> _winHistory = new();
+    private List<WinRecord> _displayWinHistory = new();
 
     public class WinRecord
     {
         public long PurchaseCount { get; set; }
-        public string Rank { get; set; }
+        public string Rank { get; set; } = "";
         public long Amount { get; set; }
         public long TotalBalance { get; set; }
-    }
-
-    private long _lastUpdateCount = 0;
-    private Stopwatch _speedStopwatch = new Stopwatch();
-
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        _uiUpdateTimer = new Timer(UpdateUI, null, Timeout.Infinite, Timeout.Infinite);
     }
 
     private async Task StartSimulation()
@@ -48,144 +41,130 @@ public partial class Lottery
         _speedStopwatch.Restart();
         _lastUpdateCount = _dwCount;
 
-        _uiUpdateTimer.Change(0, 200);
+        var uiTimer = Stopwatch.StartNew();
+        var rng = new Random();
 
         try
         {
-            if (Environment.ProcessorCount % 2 == 0)
+            while (!_cts.Token.IsCancellationRequested)
             {
-                await Task.WhenAll(Enumerable.Range(0, Environment.ProcessorCount / 2).Select(_ =>
-                    Task.Run(() => SimulationWorker(_cts.Token))));
-            }
-            else
-            {
-                await Task.WhenAll(Enumerable.Range(0, Environment.ProcessorCount).Select(_ =>
-                    Task.Run(() => SimulationWorker(_cts.Token))));
+                // 1バッチ分のシミュレーションを同期実行
+                RunBatch(rng, _cts.Token);
+
+                // 200ms ごとに統計表示を更新
+                if (uiTimer.ElapsedMilliseconds >= 200)
+                {
+                    UpdateDisplay();
+                    StateHasChanged();
+                    uiTimer.Restart();
+                }
+
+                // JSイベントループに制御を返し、ボタン操作などのUIイベントを処理可能にする
+                await Task.Yield();
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (OperationCanceledException) { }
         finally
         {
-            _speedStopwatch.Stop();
-            _uiUpdateTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            UpdateDisplay();
             _simulationRunning = false;
-            await InvokeAsync(StateHasChanged);
+            StateHasChanged();
         }
     }
 
-    private void SimulationWorker(CancellationToken cancellationToken)
+    /// <summary>1バッチ（10,000回）のくじ引きを同期実行して集計フィールドに加算する</summary>
+    private void RunBatch(Random rng, CancellationToken ct)
     {
-        var random = _threadLocalRandom.Value;
-
         long localCount = 0;
         long localPayment = 0;
         long localPrize = 0;
-        long[] localWinCounts = new long[9];
-        List<WinRecord> localWinRecords = new List<WinRecord>();
+        var localWinCounts = new long[9];
+        List<WinRecord>? localWinRecords = null;
 
         const int batchSize = 10000;
 
-        while (!cancellationToken.IsCancellationRequested)
+        for (int i = 0; i < batchSize && !ct.IsCancellationRequested; i++)
         {
-            for (int i = 0; i < batchSize && !cancellationToken.IsCancellationRequested; i++)
+            uint r = (uint)rng.Next(0, int.MaxValue);
+            if (r >= 4290000000u) continue;
+
+            localCount++;
+            localPayment += 300;
+
+            bool hasWon = false;
+            string winRank = "";
+            long winAmount = 0;
+
+            if      (r % 10000000 == 0) { localPrize += 200000000; localWinCounts[0]++; hasWon = true; winRank = "1等"; winAmount = 200000000; }
+            else if (r % 5000000  == 0) { localPrize += 100000000; localWinCounts[1]++; hasWon = true; winRank = "2等"; winAmount = 100000000; }
+            else if (r % 500000   == 0) { localPrize +=   1000000; localWinCounts[2]++; hasWon = true; winRank = "3等"; winAmount =   1000000; }
+            else if (r % 100000   == 0) { localPrize +=    500000; localWinCounts[3]++; hasWon = true; winRank = "4等"; winAmount =    500000; }
+            else if (r % 1000     == 0) { localPrize +=     10000; localWinCounts[4]++; hasWon = true; winRank = "5等"; winAmount =     10000; }
+            else if (r % 100      == 0) { localPrize +=      3000; localWinCounts[5]++; hasWon = true; winRank = "6等"; winAmount =      3000; }
+            else if (r % 10       == 0) { localPrize +=       300; localWinCounts[6]++; hasWon = true; winRank = "7等"; winAmount =       300; }
+
+            if (r % 2500000 == 0)
             {
-                uint r = (uint)random.Next(0, int.MaxValue);
-                if (r >= 4290000000) continue;
-
-                localCount++;
-                localPayment += 300;
-
-                bool hasWon = false;
-                string winRank = "";
-                long winAmount = 0;
-
-                if (r % 10000000 == 0) { localPrize += 200000000; localWinCounts[0]++; hasWon = true; winRank = "1等"; winAmount = 200000000; }
-                else if (r % 5000000 == 0) { localPrize += 100000000; localWinCounts[1]++; hasWon = true; winRank = "2等"; winAmount = 100000000; }
-                else if (r % 500000 == 0) { localPrize += 1000000; localWinCounts[2]++; hasWon = true; winRank = "3等"; winAmount = 1000000; }
-                else if (r % 100000 == 0) { localPrize += 500000; localWinCounts[3]++; hasWon = true; winRank = "4等"; winAmount = 500000; }
-                else if (r % 1000 == 0) { localPrize += 10000; localWinCounts[4]++; hasWon = true; winRank = "5等"; winAmount = 10000; }
-                else if (r % 100 == 0) { localPrize += 3000; localWinCounts[5]++; hasWon = true; winRank = "6等"; winAmount = 3000; }
-                else if (r % 10 == 0) { localPrize += 300; localWinCounts[6]++; hasWon = true; winRank = "7等"; winAmount = 300; }
-
-                if (r % 2500000 == 0)
-                {
-                    localPrize += 50000000; localWinCounts[7]++; hasWon = true;
-                    if (string.IsNullOrEmpty(winRank)) { winRank = "前後賞"; winAmount = 50000000; }
-                }
-
-                if (r % 50000 == 0 && (r / 50000) % 100 != 0)
-                {
-                    localPrize += 100000; localWinCounts[8]++; hasWon = true;
-                    if (string.IsNullOrEmpty(winRank)) { winRank = "組違い"; winAmount = 100000; }
-                }
-
-                if (hasWon && winAmount >= 500000)
-                {
-                    localWinRecords.Add(new WinRecord
-                    {
-                        PurchaseCount = Interlocked.Read(ref _dwCount) + localCount,
-                        Rank = winRank,
-                        Amount = winAmount,
-                        TotalBalance = Interlocked.Read(ref _dwLoss) + localPrize - localPayment
-                    });
-                }
+                localPrize += 50000000; localWinCounts[7]++; hasWon = true;
+                if (string.IsNullOrEmpty(winRank)) { winRank = "前後賞"; winAmount = 50000000; }
             }
 
-            Interlocked.Add(ref _dwCount, localCount);
-            Interlocked.Add(ref _dwPayment, localPayment);
-            Interlocked.Add(ref _dwPrize, localPrize);
-            Interlocked.Exchange(ref _dwLoss, _dwPrize - _dwPayment);
+            if (r % 50000 == 0 && (r / 50000) % 100 != 0)
+            {
+                localPrize += 100000; localWinCounts[8]++; hasWon = true;
+                if (string.IsNullOrEmpty(winRank)) { winRank = "組違い"; winAmount = 100000; }
+            }
 
-            for (int i = 0; i < _winCounts.Length; i++)
-                Interlocked.Add(ref _winCounts[i], localWinCounts[i]);
+            // 50万円以上の当選を履歴に記録
+            if (hasWon && winAmount >= 500000)
+            {
+                localWinRecords ??= new List<WinRecord>();
+                localWinRecords.Add(new WinRecord
+                {
+                    PurchaseCount = _dwCount + localCount,
+                    Rank          = winRank,
+                    Amount        = winAmount,
+                    TotalBalance  = _dwLoss + localPrize - localPayment
+                });
+            }
+        }
 
+        // バッチ結果をグローバル集計に反映（シングルスレッドなのでインターロック不要）
+        _dwCount   += localCount;
+        _dwPayment += localPayment;
+        _dwPrize   += localPrize;
+        _dwLoss     = _dwPrize - _dwPayment;
+
+        for (int i = 0; i < _winCounts.Length; i++)
+            _winCounts[i] += localWinCounts[i];
+
+        if (localWinRecords != null)
             foreach (var record in localWinRecords)
                 _winHistory.Add(record);
-
-            localCount = 0;
-            localPayment = 0;
-            localPrize = 0;
-            Array.Clear(localWinCounts, 0, localWinCounts.Length);
-            localWinRecords.Clear();
-        }
     }
 
-    private async void UpdateUI(object state)
+    /// <summary>処理速度と当選履歴の表示用データを更新する</summary>
+    private void UpdateDisplay()
     {
-        try
-        {
-            long currentCount = Interlocked.Read(ref _dwCount);
-            long countDiff = currentCount - _lastUpdateCount;
-            double elapsedSeconds = _speedStopwatch.ElapsedMilliseconds / 1000.0;
+        long currentCount = _dwCount;
+        double elapsedSeconds = _speedStopwatch.ElapsedMilliseconds / 1000.0;
 
-            if (elapsedSeconds > 0)
-                _processingSpeed = (int)(countDiff / elapsedSeconds);
+        if (elapsedSeconds > 0)
+            _processingSpeed = (int)((currentCount - _lastUpdateCount) / elapsedSeconds);
 
-            _lastUpdateCount = currentCount;
-            _speedStopwatch.Restart();
+        _lastUpdateCount = currentCount;
+        _speedStopwatch.Restart();
 
-            _tableLoading = true;
-            await InvokeAsync(() =>
-            {
-                _displayWinHistory = _winHistory.OrderByDescending(w => w.PurchaseCount).Take(1000).ToList();
-                _tableLoading = false;
-                StateHasChanged();
-            });
-        }
-        catch (Exception)
-        {
-        }
+        // 最新1,000件のみ表示（全件リスト化するとメモリ・描画コスト大）
+        _displayWinHistory = _winHistory.OrderByDescending(w => w.PurchaseCount).Take(1000).ToList();
     }
 
     private void StopOrResetSimulation()
     {
         if (_simulationRunning)
         {
+            // キャンセルのみ。_simulationRunning の false 化は StartSimulation の finally が担う
             _cts?.Cancel();
-            _uiUpdateTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            _simulationRunning = false;
         }
         else
         {
@@ -212,7 +191,5 @@ public partial class Lottery
     {
         _cts?.Cancel();
         _cts?.Dispose();
-        _uiUpdateTimer?.Dispose();
-        _threadLocalRandom?.Dispose();
     }
 }

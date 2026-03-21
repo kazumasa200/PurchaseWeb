@@ -20,9 +20,6 @@ builder.Services.AddScoped<IProductBuyRepository, ProductBuyRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
-// LM Studio サービス（チャット API）
-builder.Services.AddScoped<LMStudioService>();
-
 // AppSettings
 builder.Services.AddScoped<AppSettings>(sp =>
 {
@@ -55,7 +52,6 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 // Minimal API エンドポイント
-app.MapLMStudioEndpoints();
 app.MapProductEndpoints();
 app.MapProductBuyEndpoints();
 app.MapTenantEndpoints();
