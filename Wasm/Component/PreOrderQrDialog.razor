@@ -14,6 +14,10 @@
                      alt="事前注文QR"
                      style="width: 220px; height: 220px;" />
             }
+            else if (_failed)
+            {
+                <MudText Color="Color.Error">QRコードの生成に失敗しました</MudText>
+            }
             else
             {
                 <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
@@ -41,19 +45,20 @@
     private QrCodeService QrService { get; set; } = default!;
 
     private string? QrCodeBase64 { get; set; }
+    private bool _failed;
 
     protected override void OnInitialized()
     {
-        if (!string.IsNullOrEmpty(PreOrderUrl))
+        if (string.IsNullOrEmpty(PreOrderUrl)) return;
+
+        try
         {
-            try
-            {
-                QrCodeBase64 = QrService.GenerateQrBase64(PreOrderUrl);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"QR生成エラー: {ex.Message}");
-            }
+            QrCodeBase64 = QrService.GenerateQrBase64(PreOrderUrl);
+        }
+        catch (Exception ex)
+        {
+            _failed = true;
+            Console.WriteLine($"QR生成エラー: {ex.Message}");
         }
     }
 }

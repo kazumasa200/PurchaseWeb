@@ -28,11 +28,7 @@ else if (ShowQrCode)
             </MudText>
 
             <div class="d-flex justify-center mb-4">
-                @if (_isGeneratingQr)
-                {
-                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                }
-                else if (!string.IsNullOrEmpty(QrCodeBase64))
+                @if (!string.IsNullOrEmpty(QrCodeBase64))
                 {
                     <img src="@($"data:image/png;base64,{QrCodeBase64}")"
                          alt="QRコード"

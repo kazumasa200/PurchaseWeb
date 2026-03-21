@@ -23,7 +23,7 @@ builder.Services.AddMudServices();
 
 builder.Services.AddScoped<ITenantProvider, ClientTenantProvider>();
 builder.Services.AddScoped<UserState>();
-builder.Services.AddScoped<QrCodeService>();
+builder.Services.AddSingleton<QrCodeService>(); // ステートレスなので Singleton が適切
 
 builder.Services.AddScoped<IProductRepository, ProductApiRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyApiRepository>();

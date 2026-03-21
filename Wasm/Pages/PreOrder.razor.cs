@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using PurchaseWeb.Client.Models;
+using PurchaseWeb.Wasm.Helpers;
 using PurchaseWeb.Wasm.Repositories;
 using PurchaseWeb.Wasm.Services;
 using PurchaseWeb.Wasm.Usecases.PreOrder;
@@ -32,17 +33,25 @@ public partial class PreOrder
     public bool TenantExists { get; set; } = false;
     public bool ShowQrCode { get; set; } = false;
     public string? QrCodeBase64 { get; set; }
-    private bool _isGeneratingQr = false;
 
-    private Dictionary<string, string?> _productImages = [];
+    // 画像: data:image;base64,{...} 形式の表示用URLのみ保持（生base64は不要）
     private Dictionary<string, string?> _productImageSrcs = [];
     private HashSet<string> _imageLoadComplete = [];
 
     public bool IsImageLoaded(string productId) => _imageLoadComplete.Contains(productId);
     public string? GetProductImageSrc(string productId) => _productImageSrcs.GetValueOrDefault(productId);
 
-    public List<PreOrderItem> CartItems => OrderItems.Where(x => x.Quantity > 0).ToList();
-    public int TotalAmount => CartItems.Sum(x => x.SubTotal);
+    // カート: Increase/DecreaseQuantity のたびに更新してレンダリングごとの再計算を避ける
+    private List<PreOrderItem> _cartItems = [];
+    private int _totalAmount;
+    public IReadOnlyList<PreOrderItem> CartItems => _cartItems;
+    public int TotalAmount => _totalAmount;
+
+    private void RefreshCart()
+    {
+        _cartItems  = OrderItems.Where(x => x.Quantity > 0).ToList();
+        _totalAmount = _cartItems.Sum(x => x.SubTotal);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,9 +81,9 @@ public partial class PreOrder
                     Quantity = 0
                 }).ToList();
 
-                _productImages = [];
                 _productImageSrcs = [];
                 _imageLoadComplete = [];
+                RefreshCart();
             }
         }
         catch
@@ -95,20 +104,16 @@ public partial class PreOrder
             {
                 string? base64;
                 if (ImageCache.TryGet(id, out var cached))
-                {
                     base64 = cached;
-                }
                 else
                 {
                     base64 = await PreOrderUsecase.GetProductImageAsync(id);
                     ImageCache.Set(id, base64);
                 }
-                _productImages[id] = base64;
                 _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
             }
             catch
             {
-                _productImages[id] = null;
                 _productImageSrcs[id] = null;
             }
             _imageLoadComplete.Add(id);
@@ -119,6 +124,7 @@ public partial class PreOrder
     private void IncreaseQuantity(PreOrderItem item)
     {
         item.Quantity++;
+        RefreshCart();
         StateHasChanged();
     }
 
@@ -127,15 +133,15 @@ public partial class PreOrder
         if (item.Quantity > 0)
         {
             item.Quantity--;
+            RefreshCart();
             StateHasChanged();
         }
     }
 
-    private Task GenerateQrCode()
+    private void GenerateQrCode()
     {
-        if (!CartItems.Any()) return Task.CompletedTask;
+        if (!CartItems.Any()) return;
 
-        _isGeneratingQr = true;
         ShowQrCode = true;
 
         try
@@ -154,13 +160,6 @@ public partial class PreOrder
             Snackbar.Add($"QRコード生成エラー: {ex.Message}", Severity.Error);
             ShowQrCode = false;
         }
-        finally
-        {
-            _isGeneratingQr = false;
-            StateHasChanged();
-        }
-
-        return Task.CompletedTask;
     }
 
     private void BackToOrder()
@@ -170,19 +169,6 @@ public partial class PreOrder
         StateHasChanged();
     }
 
-    private static string GetStockText(int? stock) => stock switch
-    {
-        null => "在庫：無制限",
-        0    => "在庫なし",
-        <= 5 => $"残り {stock} 個",
-        _    => $"在庫：{stock} 個"
-    };
-
-    private static Color GetStockColor(int? stock) => stock switch
-    {
-        null => Color.Default,
-        0    => Color.Error,
-        <= 5 => Color.Warning,
-        _    => Color.Success
-    };
+    private static string GetStockText(int? stock) => StockDisplay.GetText(stock);
+    private static Color GetStockColor(int? stock)  => StockDisplay.GetColor(stock);
 }

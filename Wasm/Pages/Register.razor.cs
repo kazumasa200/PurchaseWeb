@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using PurchaseWeb.Client.Models;
+using PurchaseWeb.Wasm.Helpers;
 using PurchaseWeb.Wasm.Services;
 using PurchaseWeb.Wasm.Usecases.Register;
 using System.Text.Json;
@@ -47,12 +48,11 @@ public partial class Register : IDisposable
     private bool _isLoading = true;
     public bool IsLoading => _isLoading;
 
-    private Dictionary<string, string?> _productImages = [];
+    // 画像: data:image;base64,{...} 形式の表示用URLのみ保持（生base64は不要）
     private Dictionary<string, string?> _productImageSrcs = [];
     private HashSet<string> _imageLoadComplete = [];
 
     public bool IsImageLoaded(string productId) => _imageLoadComplete.Contains(productId);
-    public string? GetProductImage(string productId) => _productImages.GetValueOrDefault(productId);
     public string? GetProductImageSrc(string productId)
         => _productImageSrcs.GetValueOrDefault(productId);
 
@@ -128,7 +128,6 @@ public partial class Register : IDisposable
         try
         {
             Products = await RegisterUsecase.GetProductsAsync();
-            _productImages = [];
             _productImageSrcs = [];
             _imageLoadComplete = [];
             TotalSum = 0;
@@ -151,21 +150,17 @@ public partial class Register : IDisposable
             {
                 string? base64;
                 if (ImageCache.TryGet(id, out var cached))
-                {
                     base64 = cached;
-                }
                 else
                 {
                     base64 = await RegisterUsecase.GetProductImageAsync(id);
                     ImageCache.Set(id, base64);
                 }
-                _productImages[id] = base64;
                 _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"LoadImagesAsync [{id}] error: {ex.Message}");
-                _productImages[id] = null;
                 _productImageSrcs[id] = null;
             }
             _imageLoadComplete.Add(id);
@@ -302,21 +297,8 @@ public partial class Register : IDisposable
         }
     }
 
-    private static string GetStockText(int? stock) => stock switch
-    {
-        null    => "在庫：無制限",
-        0       => "在庫なし",
-        <= 5    => $"残り {stock} 個",
-        _       => $"在庫：{stock} 個"
-    };
-
-    private static Color GetStockColor(int? stock) => stock switch
-    {
-        null => Color.Default,
-        0    => Color.Error,
-        <= 5 => Color.Warning,
-        _    => Color.Success
-    };
+    private static string GetStockText(int? stock) => StockDisplay.GetText(stock);
+    private static Color GetStockColor(int? stock)  => StockDisplay.GetColor(stock);
 
     private void NavigateToLogin() => NavigationManager.NavigateTo("/login");
 
