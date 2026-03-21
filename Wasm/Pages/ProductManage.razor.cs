@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using PurchaseWeb.Client.Models;
+using PurchaseWeb.Wasm.Helpers;
 using PurchaseWeb.Wasm.Services;
 using PurchaseWeb.Wasm.Usecases.ProductManage;
 
@@ -26,11 +27,23 @@ public partial class ProductManage : IDisposable
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
 
-    public string SearchText { get; set; } = string.Empty;
+    // 検索テキストが変わるたびに FilteredProducts を更新（毎レンダリングの再計算を避ける）
+    private string _searchText = string.Empty;
+    public string SearchText
+    {
+        get => _searchText;
+        set { _searchText = value; RefreshFilteredProducts(); }
+    }
 
-    public List<Product> FilteredProducts => Products
-        .Where(p => p.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-        .ToList();
+    private List<Product> _filteredProducts = [];
+    public IReadOnlyList<Product> FilteredProducts => _filteredProducts;
+
+    private void RefreshFilteredProducts()
+    {
+        _filteredProducts = Products
+            .Where(p => p.ProductName.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 
     public List<Product> Products { get; set; } = [];
     private bool _initialized = false;
@@ -110,12 +123,14 @@ public partial class ProductManage : IDisposable
             _productImages = [];
             _productImageSrcs = [];
             _imageLoadComplete = [];
+            RefreshFilteredProducts();
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"LoadProducts error: {ex.Message}");
             Snackbar.Add("商品の読み込みに失敗しました", Severity.Warning);
             Products = [];
+            RefreshFilteredProducts();
         }
     }
 
@@ -265,20 +280,16 @@ public partial class ProductManage : IDisposable
         StateHasChanged();
     }
 
-    private string GetStockText(int? stock)
+    // 管理画面向けのコンパクトな表示テキスト（顧客向けは StockDisplay.GetText）
+    private static string GetStockText(int? stock) => stock switch
     {
-        if (stock == null) return "無制限";
-        if (stock == 0) return "在庫なし";
-        return $"{stock}個";
-    }
+        null => "無制限",
+        0    => "在庫なし",
+        _    => $"{stock}個"
+    };
 
-    private Color GetStockColor(int? stock)
-    {
-        if (stock == null) return Color.Default;
-        if (stock == 0) return Color.Error;
-        if (stock <= 5) return Color.Warning;
-        return Color.Success;
-    }
+    // 色は顧客向けと同じロジックなので共通ヘルパーを使用
+    private static Color GetStockColor(int? stock) => StockDisplay.GetColor(stock);
 
     private void NavigateToLogin() => NavigationManager.NavigateTo("/login");
 
