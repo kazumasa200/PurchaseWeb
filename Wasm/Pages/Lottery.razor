@@ -82,7 +82,7 @@
 
         <MudText Typo="Typo.h5" Class="mb-2">当選履歴</MudText>
         <MudTable Items="@_displayWinHistory" Dense="true" Hover="true" Bordered="true" Striped="true"
-                  Loading="@_tableLoading" LoadingProgressColor="Color.Info">
+                   LoadingProgressColor="Color.Info">
             <ToolBarContent>
                 <MudText Typo="Typo.h6">合計当選回数: @_winHistory.Count.ToString("N0") 回</MudText>
                 <MudSpacer />
