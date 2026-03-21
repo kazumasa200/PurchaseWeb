@@ -54,6 +54,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
+app.UseRouting();
 
 app.MapProductEndpoints();
 app.MapProductBuyEndpoints();
