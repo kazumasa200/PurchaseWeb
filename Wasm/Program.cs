@@ -28,6 +28,7 @@ builder.Services.AddSingleton<QrCodeService>(); // ステートレスなので S
 builder.Services.AddScoped<IProductRepository, ProductApiRepository>();
 builder.Services.AddScoped<IProductBuyRepository, ProductBuyApiRepository>();
 builder.Services.AddScoped<IPurchaseLogRepository, PurchaseLogApiRepository>();
+builder.Services.AddScoped<IPurchaseRepository, PurchaseApiRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantApiRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthApiRepository>();
 builder.Services.AddScoped<IQrRepository, QrApiRepository>();

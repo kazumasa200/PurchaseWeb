@@ -362,3 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 .idea/.idea.PurchaseWeb/.idea
+
+# 画像変換の検証用に本番データを置く一時フォルダ（商品写真が入るので追跡しない）
+.imgcheck/

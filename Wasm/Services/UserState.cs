@@ -1,11 +1,20 @@
 using Microsoft.JSInterop;
+using PurchaseWeb.Wasm.Repositories;
 
 namespace PurchaseWeb.Wasm.Services;
 
+/// <summary>
+/// 画面の出し分けに使う状態。
+///
+/// IsStoreUser は「表示を切り替えるためのヒント」でしかない。
+/// ここを書き換えても API は HttpOnly Cookie しか見ないので、店員の操作は通らない。
+/// 起動時の判定も localStorage ではなくサーバー（/api/auth/me）に聞く。
+/// </summary>
 public class UserState
 {
     private readonly ITenantProvider _tenantProvider;
     private readonly IJSRuntime? _jsRuntime;
+    private readonly IAuthRepository _authRepo;
     private bool _initialized = false;
     private bool _isStoreUser;
 
@@ -13,10 +22,11 @@ public class UserState
     public string? CurrentTenantName { get; set; }
     public event Action OnStateChanged = default!;
 
-    public UserState(ITenantProvider tenantProvider, IJSRuntime jsRuntime)
+    public UserState(ITenantProvider tenantProvider, IJSRuntime jsRuntime, IAuthRepository authRepo)
     {
         _tenantProvider = tenantProvider;
         _jsRuntime = jsRuntime;
+        _authRepo = authRepo;
     }
 
     public bool IsStoreUser
@@ -33,11 +43,11 @@ public class UserState
         if (_initialized || _jsRuntime == null) return;
         try
         {
-            var isStoreUser = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "isStoreUser");
+            // 店員かどうかはサーバーの Cookie が決める。localStorage は見ない。
+            _isStoreUser = await _authRepo.IsAuthenticatedAsync();
+
             var tenantId    = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "currentTenantId");
             var tenantName  = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "currentTenantName");
-
-            if (isStoreUser == "true") _isStoreUser = true;
 
             if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(tenantName))
             {
@@ -55,23 +65,14 @@ public class UserState
         }
     }
 
-    public async Task SetAuthenticatedAsync(bool isAuthenticated)
+    /// <summary>
+    /// ログイン成否を画面に反映する。Cookie はサーバーが発行済みなので、ここでは保存しない。
+    /// </summary>
+    public Task SetAuthenticatedAsync(bool isAuthenticated)
     {
         _isStoreUser = isAuthenticated;
         NotifyStateChanged();
-
-        if (_jsRuntime != null)
-        {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "isStoreUser",
-                    isAuthenticated.ToString().ToLower());
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"SetAuthenticatedAsync localStorage Error: {ex.Message}");
-            }
-        }
+        return Task.CompletedTask;
     }
 
     public async Task SetTenantAsync(string tenantId, string tenantName)
@@ -100,6 +101,16 @@ public class UserState
         _isStoreUser      = false;
         CurrentTenantId   = null;
         CurrentTenantName = null;
+
+        // サーバー側の Cookie も確実に落とす（ここを忘れると認可が残ったままになる）
+        try
+        {
+            await _authRepo.LogoutAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"LogoutAsync API Error: {ex.Message}");
+        }
 
         if (_jsRuntime != null)
         {

@@ -1,4 +1,4 @@
-using Infra.Repositories;
+﻿using Infra.Repositories;
 using PurchaseWeb.Api.Usecases.ProductBuy;
 using ClientModels = PurchaseWeb.Client.Models;
 
@@ -31,7 +31,7 @@ public static class ProductBuyEndpoints
                     TenantId      = pb.Product.TenantId
                 }
             }));
-        });
+        }).RequireAuthorization();
     }
 
     private static void SetTenant(HttpContext ctx, ITenantProvider tenant)
