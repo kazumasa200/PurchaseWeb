@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using PurchaseWeb.Client.Models;
 using PurchaseWeb.Wasm.Helpers;
@@ -6,7 +6,6 @@ using PurchaseWeb.Wasm.Repositories;
 using PurchaseWeb.Wasm.Services;
 using PurchaseWeb.Wasm.Usecases.PreOrder;
 using System.Text.Json;
-using ImageCache = PurchaseWeb.Wasm.Repositories.ImageCache;
 
 namespace PurchaseWeb.Wasm.Pages;
 
@@ -34,12 +33,12 @@ public partial class PreOrder
     public bool ShowQrCode { get; set; } = false;
     public string? QrCodeBase64 { get; set; }
 
-    // 画像: data:image;base64,{...} 形式の表示用URLのみ保持（生base64は不要）
-    private Dictionary<string, string?> _productImageSrcs = [];
-    private HashSet<string> _imageLoadComplete = [];
-
-    public bool IsImageLoaded(string productId) => _imageLoadComplete.Contains(productId);
-    public string? GetProductImageSrc(string productId) => _productImageSrcs.GetValueOrDefault(productId);
+    /// <summary>
+    /// 画像の取得先。ブラウザが直接叩くので、ヘッダを使えない代わりにテナントをクエリで渡す。
+    /// 以前はここで全商品の base64 を先に取ってメモリに載せていた。
+    /// </summary>
+    public string GetProductImageUrl(string productId)
+        => $"/api/products/{productId}/photo?tenantId={Uri.EscapeDataString(TenantId)}";
 
     // カート: Increase/DecreaseQuantity のたびに更新してレンダリングごとの再計算を避ける
     private List<PreOrderItem> _cartItems = [];
@@ -81,8 +80,6 @@ public partial class PreOrder
                     Quantity = 0
                 }).ToList();
 
-                _productImageSrcs = [];
-                _imageLoadComplete = [];
                 RefreshCart();
             }
         }
@@ -92,34 +89,8 @@ public partial class PreOrder
         }
 
         IsLoading = false;
-        _ = LoadImagesAsync();
     }
 
-    private async Task LoadImagesAsync()
-    {
-        var productIds = OrderItems.Select(x => x.ProductId).ToList();
-        foreach (var id in productIds)
-        {
-            try
-            {
-                string? base64;
-                if (ImageCache.TryGet(id, out var cached))
-                    base64 = cached;
-                else
-                {
-                    base64 = await PreOrderUsecase.GetProductImageAsync(id);
-                    ImageCache.Set(id, base64);
-                }
-                _productImageSrcs[id] = base64 is null ? null : $"data:image;base64,{base64}";
-            }
-            catch
-            {
-                _productImageSrcs[id] = null;
-            }
-            _imageLoadComplete.Add(id);
-            await InvokeAsync(StateHasChanged);
-        }
-    }
 
     private void IncreaseQuantity(PreOrderItem item)
     {
