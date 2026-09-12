@@ -1,4 +1,4 @@
-using Infra.Persistance.Entities;
+﻿using Infra.Persistance.Entities;
 using PurchaseWeb.Api.Usecases.Tenants;
 using ClientModels = PurchaseWeb.Client.Models;
 
@@ -14,7 +14,8 @@ public static class TenantEndpoints
             Results.Ok((await usecase.GetActiveTenantsAsync()).Select(ToDto)));
 
         group.MapGet("all", async (ITenantUsecase usecase) =>
-            Results.Ok((await usecase.GetAllTenantsAsync()).Select(ToDto)));
+            Results.Ok((await usecase.GetAllTenantsAsync()).Select(ToDto)))
+            .RequireAuthorization();
 
         group.MapPost("", async (ClientModels.Tenant dto, ITenantUsecase usecase) =>
         {
@@ -23,7 +24,7 @@ public static class TenantEndpoints
             return ret.IsSuccess
                 ? Results.Ok(ToDto(ret.Data!))
                 : Results.BadRequest(ret.ErrorMessage);
-        });
+        }).RequireAuthorization();
 
         group.MapPut("{id}", async (string id, ClientModels.Tenant dto, ITenantUsecase usecase) =>
         {
@@ -37,7 +38,7 @@ public static class TenantEndpoints
             };
             var ret = await usecase.UpdateAsync(entity);
             return ret.IsSuccess ? Results.Ok(ToDto(ret.Data!)) : Results.BadRequest(ret.ErrorMessage);
-        });
+        }).RequireAuthorization();
     }
 
     private static ClientModels.Tenant ToDto(Tenant t) => new()

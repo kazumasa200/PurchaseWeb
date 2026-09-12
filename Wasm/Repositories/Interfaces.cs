@@ -38,6 +38,11 @@ public interface ITenantRepository
 public interface IAuthRepository
 {
     Task<bool> ValidatePasswordAsync(string password);
+
+    /// <summary>いま店員として認証されているかをサーバーに聞く（localStorage は信用しない）</summary>
+    Task<bool> IsAuthenticatedAsync();
+
+    Task LogoutAsync();
 }
 
 public interface IQrRepository

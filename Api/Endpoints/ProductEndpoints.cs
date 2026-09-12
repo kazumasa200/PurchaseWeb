@@ -9,6 +9,8 @@ public static class ProductEndpoints
 {
     public static void MapProductEndpoints(this WebApplication app)
     {
+        // 公開: 客が /preorder/{tenantId} で商品を見るために必要なぶんだけ。
+        // 認可つき: 店員だけが触れるマスタ操作と、削除済みも含む一覧。
         var group = app.MapGroup("/api/products");
 
         group.MapGet("", async (HttpContext ctx, IProductUsecase usecase, ITenantProvider tenant) =>
@@ -23,7 +25,7 @@ public static class ProductEndpoints
             SetTenant(ctx, tenant);
             var products = await usecase.GetAllProductsAsync();
             return Results.Ok(products.Select(ToDto));
-        });
+        }).RequireAuthorization();
 
         group.MapGet("{id}", async (string id, HttpContext ctx, IProductUsecase usecase, ITenantProvider tenant) =>
         {
@@ -53,7 +55,7 @@ public static class ProductEndpoints
             var ret = await usecase.CreateAsync(entity, dto.ImageBase64);
             if (!ret.IsSuccess) return Results.BadRequest(ret.ErrorMessage);
             return Results.Ok(ToDto(ret.Data!));
-        });
+        }).RequireAuthorization();
 
         group.MapPut("{id}", async (string id, ClientModels.Product dto, HttpContext ctx, IProductUsecase usecase, ITenantProvider tenant) =>
         {
@@ -70,14 +72,14 @@ public static class ProductEndpoints
             var ret = await usecase.UpdateAsync(updated, dto.ImageBase64);
             if (!ret.IsSuccess) return Results.BadRequest(ret.ErrorMessage);
             return Results.Ok();
-        });
+        }).RequireAuthorization();
 
         group.MapDelete("{id}", async (string id, HttpContext ctx, IProductUsecase usecase, ITenantProvider tenant) =>
         {
             SetTenant(ctx, tenant);
             var ret = await usecase.DeleteAsync(id);
             return ret.IsSuccess ? Results.Ok() : Results.BadRequest(ret.ErrorMessage);
-        });
+        }).RequireAuthorization();
 
         group.MapPost("{id}/reduce-stock", async (string id, HttpContext ctx, IProductUsecase usecase, ITenantProvider tenant) =>
         {
@@ -86,7 +88,7 @@ public static class ProductEndpoints
                 return Results.BadRequest("quantity が不正です");
             var ret = await usecase.ReduceStockAsync(id, qty);
             return ret.IsSuccess ? Results.Ok() : Results.BadRequest(ret.ErrorMessage);
-        });
+        }).RequireAuthorization();
     }
 
     private static void SetTenant(HttpContext ctx, ITenantProvider tenant)
