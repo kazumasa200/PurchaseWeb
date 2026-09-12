@@ -1,5 +1,6 @@
-using Infra.Persistance.Entities;
+﻿using Infra.Persistance.Entities;
 using Infra.Repositories;
+using PurchaseWeb.Api.Services;
 
 namespace PurchaseWeb.Api.Usecases.Products;
 
@@ -33,7 +34,7 @@ public class ProductUsecase : IProductUsecase
         if (!ret.IsSuccess) return ret;
 
         if (!string.IsNullOrEmpty(imageBase64))
-            await _productRepo.SaveImageAsync(ret.Data!.ProductId, imageBase64);
+            await _productRepo.SaveImageAsync(ret.Data!.ProductId, ImageOptimizer.Optimize(imageBase64));
 
         return ret;
     }
@@ -44,7 +45,8 @@ public class ProductUsecase : IProductUsecase
         if (!ret.IsSuccess) return ret;
 
         // null → 既存画像を削除（SaveImageAsync 内で no-op）、非null → 保存/更新
-        await _productRepo.SaveImageAsync(product.ProductId, imageBase64);
+        await _productRepo.SaveImageAsync(product.ProductId,
+            string.IsNullOrEmpty(imageBase64) ? imageBase64 : ImageOptimizer.Optimize(imageBase64));
 
         return ret;
     }
